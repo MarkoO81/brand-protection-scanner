@@ -33,6 +33,80 @@
 
     .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
 
+    /* ── Add Domain panel ── */
+    .add-domain-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .add-domain-panel h2 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: var(--text);
+    }
+    .add-domain-form {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      align-items: flex-end;
+    }
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      flex: 1;
+      min-width: 180px;
+    }
+    .field label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+    .field input {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.55rem 0.75rem;
+      border-radius: 6px;
+      font-size: 0.875rem;
+      width: 100%;
+    }
+    .field input:focus { outline: none; border-color: var(--accent); }
+    .form-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: flex-end; }
+    .btn {
+      border: none;
+      padding: 0.55rem 1.1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-secondary { background: #2e3247; color: var(--text); }
+    .btn-warn { background: #78350f; color: #fcd34d; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary:hover:not(:disabled) { background: #3b78e7; }
+    .btn-secondary:hover:not(:disabled) { background: #3a3f5c; }
+    .btn-warn:hover:not(:disabled) { background: #92400e; }
+
+    .toast-area { margin-top: 1rem; min-height: 1.5rem; }
+    .toast {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 0.9rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      animation: fadein 0.2s ease;
+    }
+    @keyframes fadein { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+    .toast.ok  { background: #14532d; color: #86efac; }
+    .toast.err { background: #7f1d1d; color: #fca5a5; }
+    .toast.info{ background: #1e3a5f; color: #93c5fd; }
+    .spinner { width: 12px; height: 12px; border: 2px solid rgba(255,255,255,.3); border-top-color:#fff; border-radius:50%; animation: spin .7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Stats ── */
     .stats {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -51,6 +125,7 @@
     .stat-card.suspicious .value { color: var(--warn); }
     .stat-card.clean .value { color: var(--ok); }
 
+    /* ── Filters ── */
     .controls {
       display: flex;
       gap: 1rem;
@@ -76,43 +151,20 @@
       font-size: 0.875rem;
     }
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.875rem;
-    }
+    /* ── Table ── */
+    table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
     th, td { padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid var(--border); }
     th { color: var(--muted); font-weight: 500; background: var(--surface); }
     tr:hover td { background: #1f2335; }
 
-    .badge {
-      display: inline-block;
-      padding: 2px 8px;
-      border-radius: 4px;
-      font-size: 0.75rem;
-      font-weight: 600;
-    }
-    .badge.CRITICAL { background: #7f1d1d; color: #fca5a5; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
+    .badge.CRITICAL   { background: #7f1d1d; color: #fca5a5; }
     .badge.SUSPICIOUS { background: #78350f; color: #fcd34d; }
-    .badge.CLEAN { background: #14532d; color: #86efac; }
+    .badge.CLEAN      { background: #14532d; color: #86efac; }
 
-    .score-bar {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-    .score-bar-track {
-      flex: 1;
-      height: 6px;
-      background: var(--border);
-      border-radius: 3px;
-      overflow: hidden;
-    }
-    .score-bar-fill {
-      height: 100%;
-      border-radius: 3px;
-      transition: width 0.3s;
-    }
+    .score-bar { display: flex; align-items: center; gap: 0.5rem; }
+    .score-bar-track { flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+    .score-bar-fill  { height: 100%; border-radius: 3px; transition: width 0.3s; }
 
     #loading { text-align: center; padding: 2rem; color: var(--muted); }
   </style>
@@ -124,6 +176,29 @@
   </header>
 
   <div class="container">
+
+    <!-- ── Add Domain ── -->
+    <div class="add-domain-panel">
+      <h2>Add Domain to Monitor</h2>
+      <div class="add-domain-form">
+        <div class="field" style="max-width:260px">
+          <label>Brand URL</label>
+          <input id="add-url" type="text" placeholder="https://acme.com" />
+        </div>
+        <div class="field" style="max-width:260px">
+          <label>Keywords (comma-separated)</label>
+          <input id="add-keywords" type="text" placeholder="acme, acmecorp" />
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-primary"    id="btn-fingerprint" onclick="addDomain('fingerprint')">Fingerprint</button>
+          <button class="btn btn-secondary"  id="btn-sweep"       onclick="addDomain('sweep')">Sweep</button>
+          <button class="btn btn-warn"       id="btn-certstream"  onclick="addDomain('certstream')">Watch Certstream</button>
+        </div>
+      </div>
+      <div class="toast-area" id="toast-area"></div>
+    </div>
+
+    <!-- ── Stats ── -->
     <div class="stats">
       <div class="stat-card critical">
         <div class="label">Critical</div>
@@ -143,6 +218,7 @@
       </div>
     </div>
 
+    <!-- ── Filters + Results ── -->
     <div class="controls">
       <select id="filter-verdict">
         <option value="">All Verdicts</option>
@@ -172,29 +248,119 @@
   </div>
 
   <script>
+    // ── Toast helper ──────────────────────────────────────────────────────────
+    function toast(msg, type = "info", duration = 5000) {
+      const area = document.getElementById("toast-area");
+      area.innerHTML = `<div class="toast ${type}">${msg}</div>`;
+      if (duration) setTimeout(() => { area.innerHTML = ""; }, duration);
+    }
+
+    function setLoading(btn, loading) {
+      btn.disabled = loading;
+      if (loading) {
+        btn._label = btn.textContent;
+        btn.innerHTML = `<span class="spinner"></span>`;
+      } else {
+        btn.textContent = btn._label;
+      }
+    }
+
+    // ── Add Domain ────────────────────────────────────────────────────────────
+    async function addDomain(action) {
+      const rawUrl = document.getElementById("add-url").value.trim();
+      const rawKw  = document.getElementById("add-keywords").value.trim();
+
+      if (!rawUrl) { toast("Enter a brand URL first.", "err"); return; }
+
+      // Normalise: ensure https:// prefix
+      const brandUrl = rawUrl.startsWith("http") ? rawUrl : `https://${rawUrl}`;
+
+      // Extract bare domain for sweep/certstream
+      let brandDomain;
+      try {
+        brandDomain = new URL(brandUrl).hostname.replace(/^www\./, "");
+      } catch {
+        toast("Invalid URL.", "err"); return;
+      }
+
+      const keywords = rawKw ? rawKw.split(",").map(k => k.trim()).filter(Boolean) : [];
+
+      const btnMap = { fingerprint: "btn-fingerprint", sweep: "btn-sweep", certstream: "btn-certstream" };
+      const btn = document.getElementById(btnMap[action]);
+      setLoading(btn, true);
+
+      try {
+        if (action === "fingerprint") {
+          toast(`<span class="spinner"></span>&nbsp; Fingerprinting ${brandDomain} — this may take ~15 s…`, "info", 0);
+          const res = await fetch("/brands/fingerprint", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ brand_url: brandUrl }),
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.detail || res.statusText);
+          toast(`Fingerprint saved for <strong>${data.domain}</strong>. pHash: ${data.logo_phash ?? "n/a"}`, "ok");
+
+        } else if (action === "sweep") {
+          const res = await fetch("/sweep", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ domain: brandDomain, keywords }),
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.detail || res.statusText);
+          toast(`Sweep queued for <strong>${brandDomain}</strong> — ~${data.candidates_estimated} candidates. Task: ${data.task_id.slice(0,8)}…`, "ok");
+
+        } else if (action === "certstream") {
+          const res = await fetch("/monitor/certstream", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ domain: brandDomain, keywords }),
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.detail || res.statusText);
+          toast(data.message, "ok");
+        }
+      } catch (err) {
+        toast(`Error: ${err.message}`, "err");
+      } finally {
+        setLoading(btn, false);
+      }
+    }
+
+    // Submit on Enter inside the inputs
+    document.addEventListener("DOMContentLoaded", () => {
+      ["add-url", "add-keywords"].forEach(id => {
+        document.getElementById(id).addEventListener("keydown", e => {
+          if (e.key === "Enter") addDomain("fingerprint");
+        });
+      });
+    });
+
+    // ── Results ───────────────────────────────────────────────────────────────
     async function loadResults() {
       document.getElementById("loading").style.display = "block";
       document.getElementById("results-table").style.display = "none";
 
-      const verdict = document.getElementById("filter-verdict").value;
+      const verdict  = document.getElementById("filter-verdict").value;
       const minScore = document.getElementById("filter-min-score").value;
-      const brand = document.getElementById("filter-brand").value;
+      const brand    = document.getElementById("filter-brand").value;
 
       const params = new URLSearchParams({ limit: 200 });
-      if (verdict) params.set("verdict", verdict);
+      if (verdict)  params.set("verdict", verdict);
       if (minScore) params.set("min_score", minScore);
-      if (brand) params.set("brand_domain", brand);
+      if (brand)    params.set("brand_domain", brand);
 
-      const res = await fetch(`/results?${params}`);
+      const res  = await fetch(`/results?${params}`);
       const rows = await res.json();
 
       const counts = { CRITICAL: 0, SUSPICIOUS: 0, CLEAN: 0 };
       rows.forEach(r => { if (counts[r.verdict] !== undefined) counts[r.verdict]++; });
 
-      document.getElementById("count-critical").textContent = counts.CRITICAL;
+      document.getElementById("count-critical").textContent   = counts.CRITICAL;
       document.getElementById("count-suspicious").textContent = counts.SUSPICIOUS;
-      document.getElementById("count-clean").textContent = counts.CLEAN;
-      document.getElementById("count-total").textContent = rows.length;
+      document.getElementById("count-clean").textContent      = counts.CLEAN;
+      document.getElementById("count-total").textContent      = rows.length;
 
       const tbody = document.getElementById("results-body");
       tbody.innerHTML = rows.map(r => {

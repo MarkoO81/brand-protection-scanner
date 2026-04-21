@@ -1,14 +1,14 @@
 """POST /scan — enqueue a single-domain scan."""
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.deps import get_db
 from api.models import ScanRequest, ScanResponse
 from core.models import Brand
-from workers.tasks import scan_domain
+from workers.tasks import _is_locked, scan_domain
 
 router = APIRouter(tags=["scan"])
 
@@ -17,6 +17,13 @@ router = APIRouter(tags=["scan"])
 async def scan(body: ScanRequest, db: AsyncSession = Depends(get_db)):
     brand_domain = body.brand_config.domain
     keywords = body.brand_config.keywords
+
+    # Reject if already in progress
+    if _is_locked(body.domain, brand_domain):
+        raise HTTPException(
+            status_code=409,
+            detail=f"{body.domain} is already being scanned against {brand_domain}.",
+        )
 
     # Load stored brand fingerprint if available
     result = await db.execute(select(Brand).where(Brand.domain == brand_domain))

@@ -111,6 +111,9 @@ class ScanResultOut(BaseModel):
     similarity_score: float
     is_fresh_registration: bool
     registration_days: Optional[int]
+    registration_date: Optional[str]
+    registrar: Optional[str]
+    registrant_owner: Optional[str]
     has_homoglyphs: bool
     logo_similarity: float
     favicon_match: bool

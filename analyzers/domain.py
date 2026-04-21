@@ -143,6 +143,7 @@ def enrich_whois(domain: str) -> dict[str, Any]:
     """Synchronous WHOIS lookup — run in executor inside async context."""
     result: dict[str, Any] = {
         "registrar": None,
+        "owner": None,
         "creation_date": None,
         "expiration_date": None,
         "registration_days": None,
@@ -151,13 +152,31 @@ def enrich_whois(domain: str) -> dict[str, Any]:
     }
     try:
         w = whois.whois(domain)
+
         creation = w.creation_date
         if isinstance(creation, list):
             creation = creation[0]
         if isinstance(creation, str):
             creation = datetime.fromisoformat(creation)
-        result["registrar"] = str(w.registrar or "")
+
+        expiry = w.expiration_date
+        if isinstance(expiry, list):
+            expiry = expiry[0]
+
+        # Owner/registrant: try several common WHOIS field names
+        owner = (
+            getattr(w, "registrant_name", None)
+            or getattr(w, "org", None)
+            or getattr(w, "registrant", None)
+            or getattr(w, "name", None)
+        )
+        if isinstance(owner, list):
+            owner = owner[0]
+
+        result["registrar"] = str(w.registrar or "").strip() or None
+        result["owner"] = str(owner or "").strip() or None
         result["creation_date"] = creation.isoformat() if creation else None
+        result["expiration_date"] = expiry.isoformat() if isinstance(expiry, datetime) else None
         days = _days_since(creation)
         result["registration_days"] = days
         result["is_fresh"] = days is not None and days < 90

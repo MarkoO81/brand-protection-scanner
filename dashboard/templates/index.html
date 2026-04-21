@@ -284,6 +284,9 @@
           <th>Brand</th>
           <th>Score</th>
           <th>Verdict</th>
+          <th>Registered</th>
+          <th>Registrar</th>
+          <th>Owner</th>
           <th>Source</th>
           <th>Scanned</th>
         </tr>
@@ -422,6 +425,9 @@
             </div>
           </td>
           <td><span class="badge ${r.verdict}">${r.verdict}</span></td>
+          <td style="white-space:nowrap">${r.registration_date ? r.registration_date.slice(0,10) : '<span style="color:var(--muted)">—</span>'}</td>
+          <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.registrar ?? ''}">${r.registrar ?? '<span style="color:var(--muted)">—</span>'}</td>
+          <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.registrant_owner ?? ''}">${r.registrant_owner ?? '<span style="color:var(--muted)">—</span>'}</td>
           <td>${r.source}</td>
           <td>${new Date(r.scanned_at).toLocaleString()}</td>
         </tr>`;

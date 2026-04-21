@@ -44,6 +44,9 @@ class ScanResult(Base):
     similarity_score: Mapped[float] = mapped_column(Float, default=0.0)
     is_fresh_registration: Mapped[bool] = mapped_column(default=False)
     registration_days: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    registration_date: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
+    registrar: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    registrant_owner: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     has_homoglyphs: Mapped[bool] = mapped_column(default=False)
     whois_data: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
 

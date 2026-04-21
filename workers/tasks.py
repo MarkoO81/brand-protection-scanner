@@ -54,21 +54,38 @@ async def _full_scan(
     brand_phash: Optional[str],
     brand_palette: Optional[list],
     source: str = "manual",
-) -> dict[str, Any]:
-    """Core async scanning logic shared by all task types."""
+) -> dict[str, Any] | None:
+    """
+    Core async scanning logic shared by all task types.
+    Returns None if the domain does not resolve (unregistered / NXDOMAIN) —
+    callers must check for None and skip persistence.
+    """
     url = f"https://{domain}"
 
-    # --- Domain signals ---
-    sim = domain_similarity(domain, brand_domain)
-    whois_data = await asyncio.get_event_loop().run_in_executor(None, enrich_whois, domain)
-    homoglyphs = has_homoglyphs(domain)
+    # --- DNS resolution: gate on this before any expensive work ---
     ip = await resolve_domain(domain)
+    if ip is None:
+        logger.debug(f"NXDOMAIN — skipping {domain}")
+        return None
 
-    # --- IP reputation ---
-    ip_data = await get_ip_reputation(ip) if ip else {}
+    # --- Domain signals (cheap, run in parallel with DNS already done) ---
+    sim = domain_similarity(domain, brand_domain)
+    loop = asyncio.get_event_loop()
+    whois_data, homoglyphs = await asyncio.gather(
+        loop.run_in_executor(None, enrich_whois, domain),
+        loop.run_in_executor(None, has_homoglyphs, domain),
+    )
+
+    # --- IP reputation + visual + content in parallel ---
+    ip_task       = get_ip_reputation(ip)
+    screenshot_task = take_screenshot(url, domain)
+    html_task     = _fetch_html(url)
+
+    ip_data, screenshot_path, html = await asyncio.gather(
+        ip_task, screenshot_task, html_task
+    )
 
     # --- Visual signals ---
-    screenshot_path = await take_screenshot(url, domain)
     candidate_phash = compute_phash(screenshot_path) if screenshot_path else None
     logo_sim = 0.0
     if brand_phash and candidate_phash:
@@ -80,7 +97,6 @@ async def _full_scan(
     color_sim = palette_similarity(brand_palette or [], candidate_palette)
 
     # --- Content signals ---
-    html = await _fetch_html(url)
     content_signals: dict = {}
     if html:
         content_signals = analyze_content(html, domain)
@@ -164,6 +180,9 @@ def scan_domain(
                 source=source,
             )
         )
+        if result is None:
+            logger.info(f"Skipped {domain} — no DNS record")
+            return {"domain": domain, "skipped": True, "reason": "NXDOMAIN"}
         _run(_save_result(result))
         return result
     except Exception as exc:

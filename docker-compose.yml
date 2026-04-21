@@ -66,7 +66,9 @@ services:
         condition: service_healthy
 
   worker-discovery:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile.light
     command: celery -A workers.pipeline worker --queues discovery --concurrency 2 --loglevel=info
     env_file: .env
     environment:
@@ -83,7 +85,9 @@ services:
         condition: service_healthy
 
   worker-beat:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile.light
     command: celery -A workers.pipeline beat --loglevel=info
     env_file: .env
     environment:

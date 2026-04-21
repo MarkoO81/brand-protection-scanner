@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from api.routes import brands, dashboard, monitor, results, scan, sweep
+from api.routes import brands, dashboard, monitor, results, scan, sweep, workers
 from core.config import settings
 from core.database import init_db
 
@@ -42,6 +42,7 @@ app.include_router(scan.router)
 app.include_router(sweep.router)
 app.include_router(monitor.router)
 app.include_router(results.router)
+app.include_router(workers.router)
 app.include_router(dashboard.router)
 
 

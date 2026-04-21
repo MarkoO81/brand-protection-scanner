@@ -167,6 +167,37 @@
     .score-bar-fill  { height: 100%; border-radius: 3px; transition: width 0.3s; }
 
     #loading { text-align: center; padding: 2rem; color: var(--muted); }
+
+    /* ── Status bar ── */
+    .status-bar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0.5rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      font-size: 0.8rem;
+      flex-wrap: wrap;
+    }
+    .status-group { display: flex; align-items: center; gap: 0.4rem; color: var(--muted); }
+    .status-group .val { color: var(--text); font-weight: 600; }
+    .status-group .val.alive { color: var(--ok); }
+    .status-group .val.busy  { color: var(--warn); }
+    .status-group .val.dead  { color: var(--danger); }
+    .status-sep { color: var(--border); }
+    .btn-stop {
+      margin-left: auto;
+      background: #7f1d1d;
+      color: #fca5a5;
+      border: none;
+      padding: 0.35rem 0.9rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+    .btn-stop:hover:not(:disabled) { background: #991b1b; }
+    .btn-stop:disabled { opacity: 0.5; cursor: not-allowed; }
   </style>
 </head>
 <body>
@@ -174,6 +205,20 @@
     <div class="dot"></div>
     <h1>Brand Protection Scanner</h1>
   </header>
+
+  <!-- ── Status bar ── -->
+  <div class="status-bar" id="status-bar">
+    <div class="status-group">Workers <span class="val" id="sb-workers">—</span></div>
+    <div class="status-sep">|</div>
+    <div class="status-group">Active tasks <span class="val" id="sb-active">—</span></div>
+    <div class="status-sep">|</div>
+    <div class="status-group">Queued tasks <span class="val" id="sb-queued">—</span></div>
+    <div class="status-sep">|</div>
+    <div class="status-group">Scans queue <span class="val" id="sb-scans">—</span></div>
+    <div class="status-sep">|</div>
+    <div class="status-group">Discovery queue <span class="val" id="sb-discovery">—</span></div>
+    <button class="btn-stop" id="btn-stop-all" onclick="stopAll()">Stop All</button>
+  </div>
 
   <div class="container">
 
@@ -388,6 +433,55 @@
 
     loadResults();
     setInterval(loadResults, 30000);
+
+    // ── Status bar ────────────────────────────────────────────────────────────
+    async function refreshStatus() {
+      try {
+        const res  = await fetch("/workers/status");
+        const data = await res.json();
+
+        const wCount  = data.worker_count  ?? 0;
+        const active  = data.total_active  ?? 0;
+        const reserved= data.total_reserved?? 0;
+        const scans   = data.queues?.scans    ?? 0;
+        const disc    = data.queues?.discovery ?? 0;
+
+        const wEl = document.getElementById("sb-workers");
+        wEl.textContent = wCount;
+        wEl.className   = "val " + (wCount === 0 ? "dead" : active > 0 ? "busy" : "alive");
+
+        const aEl = document.getElementById("sb-active");
+        aEl.textContent = active;
+        aEl.className   = "val " + (active > 0 ? "busy" : "");
+
+        document.getElementById("sb-queued").textContent   = reserved;
+        document.getElementById("sb-scans").textContent    = scans;
+        document.getElementById("sb-discovery").textContent= disc;
+      } catch {
+        // workers unreachable — leave last values
+      }
+    }
+
+    async function stopAll() {
+      if (!confirm("Revoke all active tasks and purge queues?")) return;
+      const btn = document.getElementById("btn-stop-all");
+      btn.disabled = true;
+      btn.textContent = "Stopping…";
+      try {
+        const res  = await fetch("/workers/stop", { method: "POST" });
+        const data = await res.json();
+        toast(`Stopped: ${data.revoked_tasks} tasks revoked, ${data.purged_messages} messages purged.`, "ok");
+      } catch (err) {
+        toast(`Error: ${err.message}`, "err");
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Stop All";
+        refreshStatus();
+      }
+    }
+
+    refreshStatus();
+    setInterval(refreshStatus, 5000);
   </script>
 </body>
 </html>

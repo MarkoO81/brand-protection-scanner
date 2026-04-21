@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Brand Protection Scanner</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --border: #2e3247;
+      --accent: #4f8ef7;
+      --danger: #ef4444;
+      --warn: #f59e0b;
+      --ok: #22c55e;
+      --text: #e2e8f0;
+      --muted: #64748b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; }
+
+    header {
+      padding: 1rem 2rem;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    header h1 { font-size: 1.25rem; }
+    header .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--ok); animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+    .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.25rem;
+    }
+    .stat-card .label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+    .stat-card .value { font-size: 2rem; font-weight: 700; margin-top: 0.25rem; }
+    .stat-card.critical .value { color: var(--danger); }
+    .stat-card.suspicious .value { color: var(--warn); }
+    .stat-card.clean .value { color: var(--ok); }
+
+    .controls {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.5rem;
+      align-items: center;
+    }
+    .controls input, .controls select {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.5rem 0.75rem;
+      border-radius: 6px;
+      font-size: 0.875rem;
+    }
+    .controls button {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 0.5rem 1.25rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.875rem;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+    }
+    th, td { padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid var(--border); }
+    th { color: var(--muted); font-weight: 500; background: var(--surface); }
+    tr:hover td { background: #1f2335; }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .badge.CRITICAL { background: #7f1d1d; color: #fca5a5; }
+    .badge.SUSPICIOUS { background: #78350f; color: #fcd34d; }
+    .badge.CLEAN { background: #14532d; color: #86efac; }
+
+    .score-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .score-bar-track {
+      flex: 1;
+      height: 6px;
+      background: var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .score-bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.3s;
+    }
+
+    #loading { text-align: center; padding: 2rem; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="dot"></div>
+    <h1>Brand Protection Scanner</h1>
+  </header>
+
+  <div class="container">
+    <div class="stats">
+      <div class="stat-card critical">
+        <div class="label">Critical</div>
+        <div class="value" id="count-critical">—</div>
+      </div>
+      <div class="stat-card suspicious">
+        <div class="label">Suspicious</div>
+        <div class="value" id="count-suspicious">—</div>
+      </div>
+      <div class="stat-card clean">
+        <div class="label">Clean</div>
+        <div class="value" id="count-clean">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Total Scanned</div>
+        <div class="value" id="count-total">—</div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <select id="filter-verdict">
+        <option value="">All Verdicts</option>
+        <option value="CRITICAL">Critical</option>
+        <option value="SUSPICIOUS">Suspicious</option>
+        <option value="CLEAN">Clean</option>
+      </select>
+      <input id="filter-min-score" type="number" placeholder="Min score" min="0" max="100" />
+      <input id="filter-brand" type="text" placeholder="Brand domain" />
+      <button onclick="loadResults()">Refresh</button>
+    </div>
+
+    <div id="loading">Loading results…</div>
+    <table id="results-table" style="display:none">
+      <thead>
+        <tr>
+          <th>Domain</th>
+          <th>Brand</th>
+          <th>Score</th>
+          <th>Verdict</th>
+          <th>Source</th>
+          <th>Scanned</th>
+        </tr>
+      </thead>
+      <tbody id="results-body"></tbody>
+    </table>
+  </div>
+
+  <script>
+    async function loadResults() {
+      document.getElementById("loading").style.display = "block";
+      document.getElementById("results-table").style.display = "none";
+
+      const verdict = document.getElementById("filter-verdict").value;
+      const minScore = document.getElementById("filter-min-score").value;
+      const brand = document.getElementById("filter-brand").value;
+
+      const params = new URLSearchParams({ limit: 200 });
+      if (verdict) params.set("verdict", verdict);
+      if (minScore) params.set("min_score", minScore);
+      if (brand) params.set("brand_domain", brand);
+
+      const res = await fetch(`/results?${params}`);
+      const rows = await res.json();
+
+      const counts = { CRITICAL: 0, SUSPICIOUS: 0, CLEAN: 0 };
+      rows.forEach(r => { if (counts[r.verdict] !== undefined) counts[r.verdict]++; });
+
+      document.getElementById("count-critical").textContent = counts.CRITICAL;
+      document.getElementById("count-suspicious").textContent = counts.SUSPICIOUS;
+      document.getElementById("count-clean").textContent = counts.CLEAN;
+      document.getElementById("count-total").textContent = rows.length;
+
+      const tbody = document.getElementById("results-body");
+      tbody.innerHTML = rows.map(r => {
+        const scoreColor = r.score >= 70 ? "#ef4444" : r.score >= 40 ? "#f59e0b" : "#22c55e";
+        return `<tr>
+          <td><a href="https://${r.domain}" target="_blank" rel="noopener" style="color:#4f8ef7">${r.domain}</a></td>
+          <td>${r.brand_domain}</td>
+          <td>
+            <div class="score-bar">
+              <span style="min-width:2.5rem">${r.score}</span>
+              <div class="score-bar-track">
+                <div class="score-bar-fill" style="width:${r.score}%;background:${scoreColor}"></div>
+              </div>
+            </div>
+          </td>
+          <td><span class="badge ${r.verdict}">${r.verdict}</span></td>
+          <td>${r.source}</td>
+          <td>${new Date(r.scanned_at).toLocaleString()}</td>
+        </tr>`;
+      }).join("");
+
+      document.getElementById("loading").style.display = "none";
+      document.getElementById("results-table").style.display = "table";
+    }
+
+    loadResults();
+    setInterval(loadResults, 30000);
+  </script>
+</body>
+</html>

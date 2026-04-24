@@ -79,11 +79,36 @@ async def fingerprint_brand(
 
 @router.get("", tags=["brands"])
 async def list_brands(db: AsyncSession = Depends(get_db)):
-    """List all registered brand domains."""
-    result = await db.execute(select(Brand).order_by(Brand.domain))
-    brands = result.scalars().all()
+    """List all registered brands with scan result counts per verdict."""
+    from sqlalchemy import case, func
+    from core.models import ScanResult
+
+    # Aggregate verdict counts per brand in one query
+    counts = await db.execute(
+        select(
+            ScanResult.brand_domain,
+            func.count().label("total"),
+            func.sum(case((ScanResult.verdict == "CRITICAL",   1), else_=0)).label("critical"),
+            func.sum(case((ScanResult.verdict == "SUSPICIOUS", 1), else_=0)).label("suspicious"),
+            func.sum(case((ScanResult.verdict == "CLEAN",      1), else_=0)).label("clean"),
+        ).group_by(ScanResult.brand_domain)
+    )
+    stats = {row.brand_domain: row._asdict() for row in counts}
+
+    brands_result = await db.execute(select(Brand).order_by(Brand.domain))
+    brands = brands_result.scalars().all()
+
     return [
-        {"id": b.id, "domain": b.domain, "keywords": b.keywords, "created_at": b.created_at}
+        {
+            "id": b.id,
+            "domain": b.domain,
+            "keywords": b.keywords,
+            "created_at": b.created_at,
+            "total_scans":  stats.get(b.domain, {}).get("total",      0),
+            "critical":     stats.get(b.domain, {}).get("critical",   0),
+            "suspicious":   stats.get(b.domain, {}).get("suspicious", 0),
+            "clean":        stats.get(b.domain, {}).get("clean",      0),
+        }
         for b in brands
     ]
 

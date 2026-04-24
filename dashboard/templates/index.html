@@ -225,6 +225,53 @@
     .score-track { flex:1; height:5px; background: var(--border); border-radius:3px; overflow:hidden; min-width:60px; }
     .score-fill  { height:100%; border-radius:3px; }
 
+    /* ── Brands table ── */
+    .brands-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .brands-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .brands-card-header h2 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+    .brands-empty { padding: 1.25rem; color: var(--muted); font-size: 0.85rem; }
+    .brand-row {
+      display: grid;
+      grid-template-columns: 1fr auto auto auto auto auto;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.8rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.85rem;
+    }
+    .brand-row:last-child { border-bottom: none; }
+    .brand-row:hover { background: #1f2335; }
+    .brand-name { font-weight: 600; }
+    .brand-kw   { font-size: 0.72rem; color: var(--muted); margin-top: 0.1rem; }
+    .cnt { text-align: center; min-width: 2.5rem; font-weight: 700; }
+    .cnt.critical   { color: var(--danger); }
+    .cnt.suspicious { color: var(--warn); }
+    .cnt.clean      { color: var(--ok); }
+    .cnt.total      { color: var(--muted); }
+    .cnt-label { font-size: 0.65rem; color: var(--muted); font-weight: 400; display: block; text-align: center; }
+    .btn-delete-brand {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      border-radius: 6px;
+      padding: 0.3rem 0.7rem;
+      font-size: 0.75rem;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .btn-delete-brand:hover { border-color: var(--danger); color: #fca5a5; }
+
     .spinner { width:13px; height:13px; border:2px solid rgba(255,255,255,.25); border-top-color:#fff; border-radius:50%; animation:spin .7s linear infinite; }
     @keyframes spin { to { transform:rotate(360deg); } }
 
@@ -262,6 +309,16 @@
       </button>
     </div>
     <div class="scan-status" id="scan-status"></div>
+  </div>
+
+  <!-- ── Brands ── -->
+  <div class="brands-card">
+    <div class="brands-card-header">
+      <h2>Monitored Brands</h2>
+    </div>
+    <div id="brands-body">
+      <div class="brands-empty">Loading…</div>
+    </div>
   </div>
 
   <!-- ── Live status ── -->
@@ -570,6 +627,64 @@ async function loadResults() {
 
 loadResults();
 setInterval(loadResults, 30000);
+
+// ── Brands panel ──────────────────────────────────────────────────────────────
+async function loadBrands() {
+  const res    = await fetch("/brands");
+  const brands = await res.json();
+  const body   = document.getElementById("brands-body");
+
+  if (!brands.length) {
+    body.innerHTML = '<div class="brands-empty">No brands registered yet. Scan a domain above to get started.</div>';
+    return;
+  }
+
+  body.innerHTML = brands.map(b => {
+    const kw = b.keywords?.length ? b.keywords.join(", ") : "—";
+    return `<div class="brand-row" id="brand-row-${b.id}">
+      <div>
+        <div class="brand-name">${b.domain}</div>
+        <div class="brand-kw">Keywords: ${kw}</div>
+      </div>
+      <div class="cnt critical">
+        ${b.critical}
+        <span class="cnt-label">Critical</span>
+      </div>
+      <div class="cnt suspicious">
+        ${b.suspicious}
+        <span class="cnt-label">Suspicious</span>
+      </div>
+      <div class="cnt clean">
+        ${b.clean}
+        <span class="cnt-label">Clean</span>
+      </div>
+      <div class="cnt total">
+        ${b.total_scans}
+        <span class="cnt-label">Total</span>
+      </div>
+      <button class="btn-delete-brand" onclick="deleteBrand('${b.domain}', ${b.id})">Delete</button>
+    </div>`;
+  }).join("");
+}
+
+async function deleteBrand(domain, rowId) {
+  if (!confirm(`Delete brand "${domain}" and all its scan results?`)) return;
+  const res = await fetch(`/brands/${domain}?include_scan_results=true`, { method: "DELETE" });
+  if (res.ok) {
+    document.getElementById(`brand-row-${rowId}`)?.remove();
+    const body = document.getElementById("brands-body");
+    if (!body.querySelector(".brand-row")) {
+      body.innerHTML = '<div class="brands-empty">No brands registered yet. Scan a domain above to get started.</div>';
+    }
+    loadResults();
+  } else {
+    const d = await res.json();
+    showScanStatus(`Delete failed: ${d.detail ?? res.statusText}`, "err");
+  }
+}
+
+loadBrands();
+setInterval(loadBrands, 30000);
 </script>
 </body>
 </html>

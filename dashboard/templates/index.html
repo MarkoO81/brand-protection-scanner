@@ -6,564 +6,481 @@
   <title>Brand Protection Scanner</title>
   <style>
     :root {
-      --bg: #0f1117;
-      --surface: #1a1d27;
-      --border: #2e3247;
-      --accent: #4f8ef7;
-      --danger: #ef4444;
-      --warn: #f59e0b;
-      --ok: #22c55e;
-      --text: #e2e8f0;
-      --muted: #64748b;
+      --bg: #0f1117; --surface: #1a1d27; --border: #2e3247;
+      --accent: #4f8ef7; --danger: #ef4444; --warn: #f59e0b;
+      --ok: #22c55e; --text: #e2e8f0; --muted: #64748b;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; min-height: 100vh; }
 
-    /* ── Header ── */
-    header {
-      padding: 1rem 2rem;
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    header h1 { font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 0.6rem; }
-    .live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); animation: pulse 2s infinite; }
-    @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
-    .header-meta { font-size: 0.78rem; color: var(--muted); display: flex; gap: 1.5rem; }
-    .header-meta span b { color: var(--text); }
+    /* ── Shell ── */
+    .shell { display: flex; height: 100vh; overflow: hidden; }
 
-    /* ── Layout ── */
-    .page { max-width: 960px; margin: 0 auto; padding: 2rem 1.5rem; display: flex; flex-direction: column; gap: 1.5rem; }
+    /* ── Sidebar ── */
+    .sidebar {
+      width: 220px; flex-shrink: 0;
+      background: var(--surface); border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+    }
+    .sidebar-logo {
+      padding: 1.25rem 1.25rem 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .sidebar-logo h1 { font-size: 0.95rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; line-height: 1.3; }
+    .sidebar-logo p  { font-size: 0.7rem; color: var(--muted); margin-top: 0.2rem; }
+    .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); flex-shrink: 0; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+    nav { flex: 1; padding: 0.75rem 0; }
+    .nav-item {
+      display: flex; align-items: center; gap: 0.65rem;
+      padding: 0.6rem 1.25rem; font-size: 0.85rem; color: var(--muted);
+      cursor: pointer; border-left: 3px solid transparent;
+      transition: color .15s, background .15s;
+      user-select: none;
+    }
+    .nav-item:hover { color: var(--text); background: rgba(255,255,255,.03); }
+    .nav-item.active { color: var(--accent); border-left-color: var(--accent); background: rgba(79,142,247,.07); }
+    .nav-icon { font-size: 1rem; width: 1.2rem; text-align: center; }
+
+    .sidebar-bottom {
+      padding: 1rem 1.25rem;
+      border-top: 1px solid var(--border);
+      display: flex; flex-direction: column; gap: 0.5rem;
+    }
+    .sidebar-stat { font-size: 0.72rem; color: var(--muted); display: flex; justify-content: space-between; }
+    .sidebar-stat b { color: var(--text); }
+
+    /* ── Main area ── */
+    .main { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+
+    /* ── Top bar ── */
+    .topbar {
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      padding: 0.75rem 1.75rem;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .topbar-title { font-size: 0.95rem; font-weight: 600; }
+    .topbar-actions { display: flex; align-items: center; gap: 0.75rem; }
+    .btn-nuke {
+      background: transparent; border: 1px solid #7f1d1d; color: #fca5a5;
+      padding: 0.35rem 0.85rem; border-radius: 6px; font-size: 0.75rem;
+      font-weight: 700; cursor: pointer;
+    }
+    .btn-nuke:hover:not(:disabled) { background: #7f1d1d; }
+    .btn-nuke:disabled { opacity: .4; cursor: not-allowed; }
+
+    /* ── Pages ── */
+    .page { display: none; flex: 1; padding: 1.75rem; flex-direction: column; gap: 1.5rem; }
+    .page.active { display: flex; }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; overflow: hidden;
+    }
+    .card-header {
+      padding: 0.9rem 1.25rem; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .card-header h2 { font-size: 0.78rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+    .card-body { padding: 1.25rem; }
 
     /* ── Scan form ── */
-    .scan-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 1.75rem;
-    }
-    .scan-card h2 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 1.25rem; }
     .scan-row { display: flex; gap: 0.75rem; align-items: flex-end; flex-wrap: wrap; }
-    .scan-field { display: flex; flex-direction: column; gap: 0.4rem; flex: 1; min-width: 180px; }
-    .scan-field label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
-    .scan-field input {
-      background: var(--bg);
-      border: 1px solid var(--border);
-      color: var(--text);
-      padding: 0.65rem 0.85rem;
-      border-radius: 8px;
-      font-size: 0.9rem;
-      transition: border-color 0.15s;
+    .field { display: flex; flex-direction: column; gap: 0.35rem; flex: 1; min-width: 160px; }
+    .field label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+    .field input {
+      background: var(--bg); border: 1px solid var(--border); color: var(--text);
+      padding: 0.6rem 0.8rem; border-radius: 7px; font-size: 0.875rem;
+      transition: border-color .15s;
     }
-    .scan-field input:focus { outline: none; border-color: var(--accent); }
-    .scan-field input::placeholder { color: var(--muted); }
-
+    .field input:focus { outline: none; border-color: var(--accent); }
+    .field input::placeholder { color: var(--muted); }
     .btn-scan {
-      background: var(--accent);
-      color: #fff;
-      border: none;
-      padding: 0.65rem 2rem;
-      border-radius: 8px;
-      font-size: 0.95rem;
-      font-weight: 600;
-      cursor: pointer;
-      white-space: nowrap;
-      transition: background 0.15s;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
+      background: var(--accent); color: #fff; border: none;
+      padding: 0.6rem 1.75rem; border-radius: 7px; font-size: 0.875rem;
+      font-weight: 600; cursor: pointer; white-space: nowrap;
+      display: flex; align-items: center; gap: 0.5rem;
     }
     .btn-scan:hover:not(:disabled) { background: #3b78e7; }
-    .btn-scan:disabled { opacity: 0.5; cursor: not-allowed; }
-
-    .scan-status { margin-top: 1rem; min-height: 1.4rem; }
-    .toast {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.45rem 0.9rem;
-      border-radius: 6px;
-      font-size: 0.8rem;
-      animation: fadein 0.2s ease;
-    }
-    @keyframes fadein { from { opacity:0; transform:translateY(-3px); } to { opacity:1; transform:none; } }
-    .toast.ok   { background: #14532d; color: #86efac; }
-    .toast.err  { background: #7f1d1d; color: #fca5a5; }
-    .toast.info { background: #1e3a5f; color: #93c5fd; }
+    .btn-scan:disabled { opacity: .5; cursor: not-allowed; }
+    .scan-feedback { margin-top: 0.85rem; min-height: 1.4rem; }
 
     /* ── Status bar ── */
     .status-bar {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 1rem 1.25rem;
-      display: flex;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 1.25rem;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 1rem 1.5rem;
+      display: flex; align-items: center; flex-wrap: wrap; gap: 1.5rem;
     }
-    .sb-group { display: flex; flex-direction: column; gap: 0.2rem; }
-    .sb-label { font-size: 0.68rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
-    .sb-value { font-size: 1.35rem; font-weight: 700; }
+    .sb-group { display: flex; flex-direction: column; gap: 0.15rem; }
+    .sb-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+    .sb-value { font-size: 1.3rem; font-weight: 700; }
     .sb-value.alive { color: var(--ok); }
     .sb-value.busy  { color: var(--warn); }
     .sb-value.dead  { color: var(--danger); }
-    .sb-divider { width: 1px; height: 2.5rem; background: var(--border); }
+    .sb-divider { width: 1px; height: 2.2rem; background: var(--border); }
     .btn-stop-all {
-      margin-left: auto;
-      background: transparent;
-      border: 1px solid #7f1d1d;
-      color: #fca5a5;
-      padding: 0.4rem 1rem;
-      border-radius: 6px;
-      font-size: 0.8rem;
-      font-weight: 600;
-      cursor: pointer;
+      margin-left: auto; background: transparent; border: 1px solid var(--border);
+      color: var(--muted); padding: 0.35rem 0.85rem; border-radius: 6px;
+      font-size: 0.75rem; font-weight: 600; cursor: pointer;
     }
-    .btn-stop-all:hover:not(:disabled) { background: #7f1d1d; }
-    .btn-stop-all:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-stop-all:hover:not(:disabled) { border-color: var(--danger); color: #fca5a5; }
+    .btn-stop-all:disabled { opacity: .4; cursor: not-allowed; }
 
-    /* ── Active tasks ── */
-    .section-title {
-      font-size: 0.78rem;
-      text-transform: uppercase;
-      letter-spacing: .08em;
-      color: var(--muted);
-      display: flex;
-      align-items: center;
-      gap: 0.6rem;
-    }
-    .badge-count {
-      background: var(--warn);
-      color: #000;
-      font-size: 0.65rem;
-      font-weight: 700;
-      padding: 1px 6px;
-      border-radius: 10px;
-    }
-    .throughput-row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    /* ── Throughput pills ── */
+    .tp-row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
     .tp-pill {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 3px 12px;
-      font-size: 0.75rem;
-      color: var(--muted);
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 20px; padding: 3px 11px; font-size: 0.72rem; color: var(--muted);
     }
     .tp-pill b { color: var(--text); }
 
-    .task-list { display: flex; flex-direction: column; gap: 0.5rem; }
+    /* ── Active task rows ── */
+    .task-list { display: flex; flex-direction: column; gap: 0.4rem; }
     .task-row {
-      display: grid;
-      grid-template-columns: 8px 1fr auto auto auto auto;
-      align-items: center;
-      gap: 0.75rem;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 0.7rem 1rem;
-      font-size: 0.82rem;
+      display: grid; grid-template-columns: 8px 1fr auto auto auto;
+      align-items: center; gap: 0.75rem;
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 7px; padding: 0.65rem 1rem; font-size: 0.8rem;
     }
     .task-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); animation: pulse 1.2s infinite; }
-    .task-main { display: flex; flex-direction: column; gap: 0.15rem; overflow: hidden; }
+    .task-main { overflow: hidden; }
     .task-domain { font-weight: 600; color: var(--accent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .task-sub { font-size: 0.72rem; color: var(--muted); }
-    .tag { padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 600; white-space: nowrap; }
-    .tag.sweep       { background: #1e3a5f; color: #93c5fd; }
-    .tag.manual      { background: #1a2e1a; color: #86efac; }
-    .tag.certstream  { background: #3b1f5e; color: #c4b5fd; }
-    .task-elapsed { color: var(--muted); font-size: 0.75rem; white-space: nowrap; }
-    .task-worker  { color: var(--muted); font-size: 0.72rem; white-space: nowrap; }
+    .task-sub { font-size: 0.7rem; color: var(--muted); margin-top: 1px; }
+    .tag { padding: 2px 7px; border-radius: 4px; font-size: 0.68rem; font-weight: 600; }
+    .tag.sweep      { background: #1e3a5f; color: #93c5fd; }
+    .tag.manual     { background: #1a2e1a; color: #86efac; }
+    .tag.certstream { background: #3b1f5e; color: #c4b5fd; }
+    .task-elapsed { color: var(--muted); font-size: 0.72rem; white-space: nowrap; }
     .btn-task-stop {
-      background: none;
-      border: 1px solid var(--border);
-      color: var(--muted);
-      border-radius: 4px;
-      padding: 2px 8px;
-      font-size: 0.7rem;
-      cursor: pointer;
+      background: none; border: 1px solid var(--border); color: var(--muted);
+      border-radius: 4px; padding: 2px 7px; font-size: 0.68rem; cursor: pointer;
     }
     .btn-task-stop:hover { border-color: var(--danger); color: #fca5a5; }
+    .empty-msg { color: var(--muted); font-size: 0.82rem; padding: 0.25rem 0; }
 
-    .empty-state { color: var(--muted); font-size: 0.85rem; padding: 0.75rem 0; }
+    /* ── Section title ── */
+    .section-head {
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 0.75rem;
+    }
+    .section-title { font-size: 0.75rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); display: flex; align-items: center; gap: 0.5rem; }
+    .badge-count { background: var(--warn); color: #000; font-size: 0.62rem; font-weight: 700; padding: 1px 6px; border-radius: 10px; }
 
-    /* ── Results ── */
-    .results-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
+    /* ── Results table ── */
     .filters { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
     .filters select, .filters input {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      color: var(--text);
-      padding: 0.4rem 0.65rem;
-      border-radius: 6px;
-      font-size: 0.8rem;
+      background: var(--surface); border: 1px solid var(--border); color: var(--text);
+      padding: 0.35rem 0.6rem; border-radius: 6px; font-size: 0.78rem;
     }
-    .btn-refresh {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      color: var(--text);
-      padding: 0.4rem 0.9rem;
-      border-radius: 6px;
-      font-size: 0.8rem;
-      cursor: pointer;
+    .btn-sm {
+      background: var(--surface); border: 1px solid var(--border); color: var(--text);
+      padding: 0.35rem 0.85rem; border-radius: 6px; font-size: 0.78rem; cursor: pointer;
     }
-    .btn-refresh:hover { border-color: var(--accent); color: var(--accent); }
-
-    table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
-    th, td { padding: 0.65rem 0.85rem; text-align: left; border-bottom: 1px solid var(--border); }
-    th { color: var(--muted); font-weight: 500; background: var(--surface); position: sticky; top: 0; }
+    .btn-sm:hover { border-color: var(--accent); color: var(--accent); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+    th, td { padding: 0.6rem 0.8rem; text-align: left; border-bottom: 1px solid var(--border); }
+    th { color: var(--muted); font-weight: 500; background: var(--surface); position: sticky; top: 0; z-index: 1; }
     tr:hover td { background: #1f2335; }
-
-    .verdict { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.72rem; font-weight: 700; }
+    .verdict { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 0.7rem; font-weight: 700; }
     .verdict.CRITICAL   { background: #7f1d1d; color: #fca5a5; }
     .verdict.SUSPICIOUS { background: #78350f; color: #fcd34d; }
     .verdict.CLEAN      { background: #14532d; color: #86efac; }
-
     .score-cell { display: flex; align-items: center; gap: 0.5rem; }
-    .score-track { flex:1; height:5px; background: var(--border); border-radius:3px; overflow:hidden; min-width:60px; }
-    .score-fill  { height:100%; border-radius:3px; }
+    .score-track { flex:1; height:4px; background: var(--border); border-radius:2px; overflow:hidden; min-width:50px; }
+    .score-fill  { height:100%; border-radius:2px; }
 
-    /* ── Brands table ── */
-    .brands-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      overflow: hidden;
-    }
-    .brands-card-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 1rem 1.25rem;
-      border-bottom: 1px solid var(--border);
-    }
-    .brands-card-header h2 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
-    .brands-empty { padding: 1.25rem; color: var(--muted); font-size: 0.85rem; }
-    .brand-row {
-      display: grid;
-      grid-template-columns: 1fr auto auto auto auto auto;
-      align-items: center;
-      gap: 1rem;
-      padding: 0.8rem 1.25rem;
-      border-bottom: 1px solid var(--border);
-      font-size: 0.85rem;
-    }
-    .brand-row:last-child { border-bottom: none; }
-    .brand-row:hover { background: #1f2335; }
-    .brand-name { font-weight: 600; }
-    .brand-kw   { font-size: 0.72rem; color: var(--muted); margin-top: 0.1rem; }
-    .cnt { text-align: center; min-width: 2.5rem; font-weight: 700; }
-    .cnt.critical   { color: var(--danger); }
-    .cnt.suspicious { color: var(--warn); }
-    .cnt.clean      { color: var(--ok); }
-    .cnt.total      { color: var(--muted); }
-    .cnt-label { font-size: 0.65rem; color: var(--muted); font-weight: 400; display: block; text-align: center; }
+    /* ── Brands page ── */
+    .brands-table { width: 100%; border-collapse: collapse; }
+    .brands-table th, .brands-table td { padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid var(--border); }
+    .brands-table th { color: var(--muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: .06em; font-weight: 500; background: var(--surface); }
+    .brands-table tr:hover td { background: #1f2335; }
     .brand-name-btn {
-      background: none;
-      border: none;
-      color: var(--accent);
-      font-weight: 600;
-      font-size: 0.85rem;
-      cursor: pointer;
-      text-align: left;
-      padding: 0;
-      text-decoration: underline;
-      text-underline-offset: 3px;
-      text-decoration-color: transparent;
-      transition: text-decoration-color 0.15s;
+      background: none; border: none; color: var(--accent); font-weight: 600;
+      font-size: 0.85rem; cursor: pointer; padding: 0; text-align: left;
     }
-    .brand-name-btn:hover { text-decoration-color: var(--accent); }
-
-    .btn-delete-brand {
-      background: none;
-      border: 1px solid var(--border);
-      color: var(--muted);
-      border-radius: 6px;
-      padding: 0.3rem 0.7rem;
-      font-size: 0.75rem;
-      cursor: pointer;
-      white-space: nowrap;
+    .brand-name-btn:hover { text-decoration: underline; }
+    .brand-kw { font-size: 0.7rem; color: var(--muted); margin-top: 2px; }
+    .cnt { font-weight: 700; text-align: center; }
+    .cnt.c { color: var(--danger); }
+    .cnt.s { color: var(--warn); }
+    .cnt.ok { color: var(--ok); }
+    .cnt.t  { color: var(--muted); }
+    .btn-danger {
+      background: none; border: 1px solid var(--border); color: var(--muted);
+      border-radius: 6px; padding: 0.3rem 0.75rem; font-size: 0.75rem; cursor: pointer;
     }
-    .btn-delete-brand:hover { border-color: var(--danger); color: #fca5a5; }
+    .btn-danger:hover { border-color: var(--danger); color: #fca5a5; }
 
     /* ── Brand detail drawer ── */
-    .brand-detail {
-      display: none;
-      background: var(--bg);
-      border-top: 1px solid var(--border);
-      padding: 1rem 1.25rem 1.25rem;
+    .brand-drawer {
+      display: none; background: var(--bg);
+      border-top: 1px solid var(--border); padding: 1rem 1.25rem 1.25rem;
     }
-    .brand-detail.open { display: block; }
-    .brand-detail-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 0.75rem;
-    }
-    .brand-detail-header h3 { font-size: 0.8rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
-    .btn-close-detail {
-      background: none;
-      border: none;
-      color: var(--muted);
-      cursor: pointer;
-      font-size: 1rem;
-      line-height: 1;
-    }
-    .btn-close-detail:hover { color: var(--text); }
-    .detail-table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
-    .detail-table th, .detail-table td { padding: 0.5rem 0.65rem; text-align: left; border-bottom: 1px solid var(--border); }
+    .brand-drawer.open { display: block; }
+    .drawer-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; }
+    .drawer-head h3 { font-size: 0.75rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+    .btn-close { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 1rem; }
+    .btn-close:hover { color: var(--text); }
+    .detail-table { width: 100%; border-collapse: collapse; font-size: 0.76rem; }
+    .detail-table th, .detail-table td { padding: 0.45rem 0.65rem; text-align: left; border-bottom: 1px solid var(--border); }
     .detail-table th { color: var(--muted); font-weight: 500; }
     .detail-table tr:last-child td { border-bottom: none; }
     .detail-table tr:hover td { background: #1f2335; }
-    .detail-empty { color: var(--muted); font-size: 0.82rem; padding: 0.5rem 0; }
-    .detail-loading { color: var(--muted); font-size: 0.82rem; padding: 0.5rem 0; }
 
-    .spinner { width:13px; height:13px; border:2px solid rgba(255,255,255,.25); border-top-color:#fff; border-radius:50%; animation:spin .7s linear infinite; }
-    @keyframes spin { to { transform:rotate(360deg); } }
-
-    #tbl-loading { text-align:center; padding:2rem; color:var(--muted); }
+    /* ── Misc ── */
+    .spinner { width:12px; height:12px; border:2px solid rgba(255,255,255,.2); border-top-color:#fff; border-radius:50%; animation:spin .7s linear infinite; }
+    @keyframes spin { to{transform:rotate(360deg)} }
+    .toast { display:inline-flex; align-items:center; gap:0.5rem; padding:0.4rem 0.85rem; border-radius:6px; font-size:0.78rem; animation:fadein .2s; }
+    @keyframes fadein { from{opacity:0;transform:translateY(-3px)} to{opacity:1;transform:none} }
+    .toast.ok   { background:#14532d; color:#86efac; }
+    .toast.err  { background:#7f1d1d; color:#fca5a5; }
+    .toast.info { background:#1e3a5f; color:#93c5fd; }
   </style>
 </head>
 <body>
+<div class="shell">
 
-<header>
-  <h1><div class="live-dot"></div> Brand Protection Scanner</h1>
-  <div class="header-meta">
-    <span>Workers <b id="h-workers">—</b></span>
-    <span>Active <b id="h-active">—</b></span>
-    <span>Scans queue <b id="h-scans">—</b></span>
-    <span>Discovery queue <b id="h-discovery">—</b></span>
-  </div>
-  <button id="btn-nuke" onclick="nukeAll()" style="
-    background:#7f1d1d;color:#fca5a5;border:1px solid #991b1b;
-    padding:0.4rem 1rem;border-radius:6px;font-size:0.8rem;
-    font-weight:700;cursor:pointer;white-space:nowrap;
-  ">⚠ Reset All</button>
-</header>
-
-<div class="page">
-
-  <!-- ── Scan form ── -->
-  <div class="scan-card">
-    <h2>Scan a domain</h2>
-    <div class="scan-row">
-      <div class="scan-field" style="max-width:300px">
-        <label>Brand URL</label>
-        <input id="f-url" type="text" placeholder="https://acme.com" />
+  <!-- ── Sidebar ── -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <h1><div class="live-dot"></div> BPS</h1>
+      <p>Brand Protection Scanner</p>
+    </div>
+    <nav>
+      <div class="nav-item active" id="nav-dashboard" onclick="showPage('dashboard')">
+        <span class="nav-icon">📊</span> Dashboard
       </div>
-      <div class="scan-field">
-        <label>Keywords (comma-separated)</label>
-        <input id="f-keywords" type="text" placeholder="acme, acmecorp" />
+      <div class="nav-item" id="nav-brands" onclick="showPage('brands')">
+        <span class="nav-icon">🛡️</span> Brands
       </div>
-      <button class="btn-scan" id="btn-scan" onclick="startScan()">
-        <span id="scan-btn-label">Scan</span>
-      </button>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="sidebar-stat">Workers <b id="sb-workers">—</b></div>
+      <div class="sidebar-stat">Active tasks <b id="sb-active">—</b></div>
+      <div class="sidebar-stat">Scans queue <b id="sb-scans">—</b></div>
+      <div class="sidebar-stat">Discovery queue <b id="sb-disc">—</b></div>
+      <div class="sidebar-stat">Rate <b id="sb-rate">—</b>/min</div>
     </div>
-    <div class="scan-status" id="scan-status"></div>
-  </div>
+  </aside>
 
-  <!-- ── Brands ── -->
-  <div class="brands-card">
-    <div class="brands-card-header">
-      <h2>Monitored Brands</h2>
-    </div>
-    <div id="brands-body">
-      <div class="brands-empty">Loading…</div>
-    </div>
-  </div>
+  <!-- ── Main ── -->
+  <div class="main">
 
-  <!-- ── Live status ── -->
-  <div class="status-bar">
-    <div class="sb-group">
-      <div class="sb-label">Workers</div>
-      <div class="sb-value" id="sb-workers">—</div>
-    </div>
-    <div class="sb-divider"></div>
-    <div class="sb-group">
-      <div class="sb-label">Active tasks</div>
-      <div class="sb-value" id="sb-active">—</div>
-    </div>
-    <div class="sb-divider"></div>
-    <div class="sb-group">
-      <div class="sb-label">Scans queue</div>
-      <div class="sb-value" id="sb-scans">—</div>
-    </div>
-    <div class="sb-divider"></div>
-    <div class="sb-group">
-      <div class="sb-label">Discovery queue</div>
-      <div class="sb-value" id="sb-discovery">—</div>
-    </div>
-    <div class="sb-divider"></div>
-    <div class="sb-group">
-      <div class="sb-label">Rate</div>
-      <div class="sb-value" id="sb-rate">—<span style="font-size:0.75rem;color:var(--muted)">/min</span></div>
-    </div>
-    <button class="btn-stop-all" id="btn-stop-all" onclick="stopAll()">Stop All</button>
-  </div>
-
-  <!-- ── Active tasks ── -->
-  <div>
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;flex-wrap:wrap;gap:0.75rem">
-      <div class="section-title">
-        Active scans
-        <span class="badge-count" id="active-badge" style="display:none">0</span>
-      </div>
-      <div class="throughput-row">
-        <div class="tp-pill">1 min <b id="tp-1m">—</b></div>
-        <div class="tp-pill">10 min <b id="tp-10m">—</b></div>
-        <div class="tp-pill">1 h <b id="tp-1h">—</b></div>
-      </div>
-    </div>
-    <div class="task-list" id="task-list">
-      <div class="empty-state" id="task-empty">No active scans right now.</div>
-    </div>
-  </div>
-
-  <!-- ── Results ── -->
-  <div>
-    <div class="results-header" style="margin-bottom:0.75rem">
-      <div class="section-title">Results</div>
-      <div class="filters">
-        <select id="f-verdict">
-          <option value="">All verdicts</option>
-          <option value="CRITICAL">Critical</option>
-          <option value="SUSPICIOUS">Suspicious</option>
-          <option value="CLEAN">Clean</option>
-        </select>
-        <input id="f-min-score" type="number" placeholder="Min score" min="0" max="100" style="width:100px" />
-        <input id="f-brand" type="text" placeholder="Brand domain" style="width:150px" />
-        <button class="btn-refresh" onclick="loadResults()">Refresh</button>
+    <!-- Top bar -->
+    <div class="topbar">
+      <div class="topbar-title" id="topbar-title">Dashboard</div>
+      <div class="topbar-actions">
+        <div id="global-toast"></div>
+        <button class="btn-nuke" id="btn-nuke" onclick="nukeAll()">⚠ Reset All</button>
       </div>
     </div>
 
-    <div id="tbl-loading">Loading…</div>
-    <table id="results-table" style="display:none">
-      <thead>
-        <tr>
-          <th>Domain</th>
-          <th>Brand</th>
-          <th>Score</th>
-          <th>Verdict</th>
-          <th>Registered</th>
-          <th>Registrar</th>
-          <th>Owner</th>
-          <th>Source</th>
-          <th>Scanned</th>
-        </tr>
-      </thead>
-      <tbody id="results-body"></tbody>
-    </table>
-  </div>
+    <!-- ══════════════════════════════════════════════
+         PAGE: Dashboard
+    ══════════════════════════════════════════════ -->
+    <div class="page active" id="page-dashboard">
 
-</div><!-- /page -->
+      <!-- Scan form -->
+      <div class="card">
+        <div class="card-header"><h2>Scan a domain</h2></div>
+        <div class="card-body">
+          <div class="scan-row">
+            <div class="field" style="max-width:280px">
+              <label>Brand URL</label>
+              <input id="f-url" type="text" placeholder="https://acme.com" />
+            </div>
+            <div class="field">
+              <label>Keywords (comma-separated)</label>
+              <input id="f-keywords" type="text" placeholder="acme, acmecorp" />
+            </div>
+            <button class="btn-scan" id="btn-scan" onclick="startScan()">
+              <span id="scan-label">Scan</span>
+            </button>
+          </div>
+          <div class="scan-feedback" id="scan-feedback"></div>
+        </div>
+      </div>
+
+      <!-- Status bar -->
+      <div class="status-bar">
+        <div class="sb-group"><div class="sb-label">Workers</div><div class="sb-value" id="ws-workers">—</div></div>
+        <div class="sb-divider"></div>
+        <div class="sb-group"><div class="sb-label">Active</div><div class="sb-value" id="ws-active">—</div></div>
+        <div class="sb-divider"></div>
+        <div class="sb-group"><div class="sb-label">Scans queue</div><div class="sb-value" id="ws-scans">—</div></div>
+        <div class="sb-divider"></div>
+        <div class="sb-group"><div class="sb-label">Discovery</div><div class="sb-value" id="ws-disc">—</div></div>
+        <div class="sb-divider"></div>
+        <div class="sb-group"><div class="sb-label">Rate</div><div class="sb-value" id="ws-rate">—<span style="font-size:.7rem;color:var(--muted)">/min</span></div></div>
+        <button class="btn-stop-all" id="btn-stop-all" onclick="stopAll()">Stop All</button>
+      </div>
+
+      <!-- Active scans -->
+      <div>
+        <div class="section-head" style="margin-bottom:.75rem">
+          <div class="section-title">
+            Active scans
+            <span class="badge-count" id="active-badge" style="display:none">0</span>
+          </div>
+          <div class="tp-row">
+            <div class="tp-pill">1 min <b id="tp-1m">—</b></div>
+            <div class="tp-pill">10 min <b id="tp-10m">—</b></div>
+            <div class="tp-pill">1 h <b id="tp-1h">—</b></div>
+          </div>
+        </div>
+        <div class="task-list" id="task-list">
+          <div class="empty-msg" id="task-empty">No active scans.</div>
+        </div>
+      </div>
+
+      <!-- Results -->
+      <div>
+        <div class="section-head" style="margin-bottom:.75rem">
+          <div class="section-title">Results</div>
+          <div class="filters">
+            <select id="f-verdict"><option value="">All verdicts</option><option value="CRITICAL">Critical</option><option value="SUSPICIOUS">Suspicious</option><option value="CLEAN">Clean</option></select>
+            <input id="f-min-score" type="number" placeholder="Min score" min="0" max="100" style="width:90px" />
+            <input id="f-brand" type="text" placeholder="Brand domain" style="width:140px" />
+            <button class="btn-sm" onclick="loadResults()">Refresh</button>
+          </div>
+        </div>
+        <div id="tbl-loading" style="color:var(--muted);font-size:.82rem;padding:.5rem 0">Loading…</div>
+        <table id="results-table" style="display:none">
+          <thead>
+            <tr>
+              <th>Domain</th><th>Brand</th><th>Score</th><th>Verdict</th>
+              <th>Registered</th><th>Registrar</th><th>Owner</th><th>Source</th>
+            </tr>
+          </thead>
+          <tbody id="results-body"></tbody>
+        </table>
+      </div>
+    </div><!-- /page-dashboard -->
+
+    <!-- ══════════════════════════════════════════════
+         PAGE: Brands
+    ══════════════════════════════════════════════ -->
+    <div class="page" id="page-brands">
+      <div class="card">
+        <div class="card-header">
+          <h2>Monitored Brands</h2>
+          <button class="btn-sm" onclick="loadBrands()">Refresh</button>
+        </div>
+        <div id="brands-container">
+          <div style="padding:1.25rem;color:var(--muted);font-size:.82rem">Loading…</div>
+        </div>
+      </div>
+    </div><!-- /page-brands -->
+
+  </div><!-- /main -->
+</div><!-- /shell -->
 
 <script>
-// ── Helpers ──────────────────────────────────────────────────────────────────
-function showScanStatus(msg, type, duration = 6000) {
-  const el = document.getElementById("scan-status");
+// ── Navigation ────────────────────────────────────────────────────────────────
+function showPage(name) {
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+  document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
+  document.getElementById("page-" + name).classList.add("active");
+  document.getElementById("nav-" + name).classList.add("active");
+  const titles = { dashboard: "Dashboard", brands: "Brand Configuration" };
+  document.getElementById("topbar-title").textContent = titles[name] ?? name;
+  if (name === "brands") loadBrands();
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+function toast(msg, type = "info", duration = 6000) {
+  const el = document.getElementById("global-toast");
   el.innerHTML = `<div class="toast ${type}">${msg}</div>`;
   if (duration) setTimeout(() => { el.innerHTML = ""; }, duration);
 }
 
-function setScanLoading(loading) {
-  const btn   = document.getElementById("btn-scan");
-  const label = document.getElementById("scan-btn-label");
-  btn.disabled = loading;
-  label.innerHTML = loading ? '<span class="spinner"></span>' : "Scan";
+// ── Scan ──────────────────────────────────────────────────────────────────────
+function setScanLoading(on) {
+  const btn = document.getElementById("btn-scan");
+  btn.disabled = on;
+  document.getElementById("scan-label").innerHTML = on ? '<span class="spinner"></span>' : "Scan";
 }
 
-// ── Scan button ───────────────────────────────────────────────────────────────
+function scanFeedback(msg, type, dur = 6000) {
+  const el = document.getElementById("scan-feedback");
+  el.innerHTML = `<div class="toast ${type}">${msg}</div>`;
+  if (dur) setTimeout(() => el.innerHTML = "", dur);
+}
+
 async function startScan() {
   const rawUrl = document.getElementById("f-url").value.trim();
   const rawKw  = document.getElementById("f-keywords").value.trim();
-
-  if (!rawUrl) { showScanStatus("Enter a brand URL.", "err"); return; }
-
+  if (!rawUrl) { scanFeedback("Enter a brand URL.", "err"); return; }
   const brandUrl = rawUrl.startsWith("http") ? rawUrl : `https://${rawUrl}`;
   let brandDomain;
   try { brandDomain = new URL(brandUrl).hostname.replace(/^www\./, ""); }
-  catch { showScanStatus("Invalid URL.", "err"); return; }
-
+  catch { scanFeedback("Invalid URL.", "err"); return; }
   const keywords = rawKw ? rawKw.split(",").map(k => k.trim()).filter(Boolean) : [];
 
   setScanLoading(true);
-  showScanStatus('<span class="spinner"></span>&nbsp; Fingerprinting brand…', "info", 0);
-
+  scanFeedback('<span class="spinner"></span>&nbsp;Fingerprinting brand…', "info", 0);
   try {
-    // 1. Fingerprint
-    const fpRes  = await fetch("/brands/fingerprint", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+    const fp = await fetch("/brands/fingerprint", {
+      method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ brand_url: brandUrl }),
     });
-    if (!fpRes.ok) throw new Error((await fpRes.json()).detail ?? fpRes.statusText);
+    if (!fp.ok) throw new Error((await fp.json()).detail ?? fp.statusText);
 
-    showScanStatus('<span class="spinner"></span>&nbsp; Queuing sweep…', "info", 0);
-
-    // 2. Sweep
-    const swRes  = await fetch("/sweep", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+    scanFeedback('<span class="spinner"></span>&nbsp;Queuing sweep…', "info", 0);
+    const sw = await fetch("/sweep", {
+      method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ domain: brandDomain, keywords }),
     });
-    const swData = await swRes.json();
-    if (!swRes.ok) throw new Error(swData.detail ?? swRes.statusText);
+    const swD = await sw.json();
+    if (!sw.ok) throw new Error(swD.detail ?? sw.statusText);
 
-    // 3. Certstream
     await fetch("/monitor/certstream", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+      method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ domain: brandDomain, keywords }),
     });
 
-    showScanStatus(
-      `Scan started for <b>${brandDomain}</b> — ${swData.candidates_estimated} candidates queued. Certstream monitoring active.`,
-      "ok"
-    );
-  } catch(err) {
-    showScanStatus(`Error: ${err.message}`, "err");
+    scanFeedback(`Scan started for <b>${brandDomain}</b> — ${swD.candidates_estimated} candidates queued.`, "ok");
+    loadBrands();
+  } catch(e) {
+    scanFeedback(`Error: ${e.message}`, "err");
   } finally {
     setScanLoading(false);
   }
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  ["f-url","f-keywords"].forEach(id => {
-    document.getElementById(id).addEventListener("keydown", e => {
-      if (e.key === "Enter") startScan();
-    });
-  });
+  ["f-url","f-keywords"].forEach(id =>
+    document.getElementById(id).addEventListener("keydown", e => { if (e.key === "Enter") startScan(); })
+  );
 });
 
 // ── Status + active tasks (every 3 s) ────────────────────────────────────────
 async function refreshStatus() {
   try {
-    const [sRes, tRes] = await Promise.all([
-      fetch("/workers/status"),
-      fetch("/workers/throughput"),
-    ]);
-    const s = await sRes.json();
-    const t = await tRes.json();
+    const [sRes, tRes] = await Promise.all([fetch("/workers/status"), fetch("/workers/throughput")]);
+    const s = await sRes.json(), t = await tRes.json();
+    const wCount = s.worker_count ?? 0, active = s.total_active ?? 0;
+    const scans = s.queues?.scans ?? "—", disc = s.queues?.discovery ?? "—";
 
-    // Header
-    const wCount = s.worker_count ?? 0;
-    const active = s.total_active ?? 0;
-    document.getElementById("h-workers").textContent   = wCount;
-    document.getElementById("h-active").textContent    = active;
-    document.getElementById("h-scans").textContent     = s.queues?.scans    ?? "—";
-    document.getElementById("h-discovery").textContent = s.queues?.discovery ?? "—";
+    // Sidebar
+    document.getElementById("sb-workers").textContent = wCount;
+    document.getElementById("sb-active").textContent  = active;
+    document.getElementById("sb-scans").textContent   = scans;
+    document.getElementById("sb-disc").textContent    = disc;
+    document.getElementById("sb-rate").textContent    = t.rate_per_min ?? "—";
 
     // Status bar
-    const wEl = document.getElementById("sb-workers");
+    const wEl = document.getElementById("ws-workers");
     wEl.textContent = wCount;
-    wEl.className = "sb-value " + (wCount === 0 ? "dead" : active > 0 ? "busy" : "alive");
-    document.getElementById("sb-active").textContent    = active;
-    document.getElementById("sb-scans").textContent     = s.queues?.scans    ?? "—";
-    document.getElementById("sb-discovery").textContent = s.queues?.discovery ?? "—";
-    document.getElementById("sb-rate").innerHTML =
-      `${t.rate_per_min ?? "—"}<span style="font-size:0.75rem;color:var(--muted)">/min</span>`;
+    wEl.className = "sb-value " + (wCount===0?"dead":active>0?"busy":"alive");
+    document.getElementById("ws-active").textContent = active;
+    document.getElementById("ws-scans").textContent  = scans;
+    document.getElementById("ws-disc").textContent   = disc;
+    document.getElementById("ws-rate").innerHTML =
+      `${t.rate_per_min ?? "—"}<span style="font-size:.7rem;color:var(--muted)">/min</span>`;
 
     // Throughput
     document.getElementById("tp-1m").textContent  = t.last_1m  ?? "—";
@@ -576,72 +493,60 @@ async function refreshStatus() {
     badge.textContent = tasks.length;
     badge.style.display = tasks.length ? "inline" : "none";
 
-    const list  = document.getElementById("task-list");
+    const list = document.getElementById("task-list");
     const empty = document.getElementById("task-empty");
-    if (tasks.length === 0) {
-      list.innerHTML = "";
-      list.appendChild(empty);
-      empty.style.display = "block";
+    if (!tasks.length) {
+      list.innerHTML = ""; list.appendChild(empty); empty.style.display = "block";
     } else {
       empty.style.display = "none";
-      // Keep existing rows if IDs match (avoid flicker)
-      const existing = new Set([...list.querySelectorAll("[data-tid]")].map(el => el.dataset.tid));
+      const existing = new Set([...list.querySelectorAll("[data-tid]")].map(e => e.dataset.tid));
       const incoming = new Set(tasks.map(t => t.id));
-      // Remove gone tasks
       existing.forEach(id => { if (!incoming.has(id)) list.querySelector(`[data-tid="${id}"]`)?.remove(); });
-      // Add / update
       tasks.forEach(t => {
         const elapsed = t.elapsed_sec != null ? `${t.elapsed_sec}s` : "—";
-        const worker  = (t.worker ?? "").split("@").pop() ?? "—";
-        const src     = t.source ?? "manual";
+        const worker  = (t.worker ?? "").split("@").pop();
+        const src = t.source ?? "manual";
         let el = list.querySelector(`[data-tid="${t.id}"]`);
-        if (!el) {
-          el = document.createElement("div");
-          el.className = "task-row";
-          el.dataset.tid = t.id;
-          list.appendChild(el);
-        }
+        if (!el) { el = document.createElement("div"); el.className = "task-row"; el.dataset.tid = t.id; list.appendChild(el); }
         el.innerHTML = `
           <div class="task-dot"></div>
           <div class="task-main">
-            <div class="task-domain" title="${t.domain ?? ''}">${(t.domain ?? "—").length > 35 ? (t.domain ?? "").slice(0,33)+"…" : (t.domain ?? "—")}</div>
-            <div class="task-sub">vs ${t.brand_domain ?? "—"} &nbsp;·&nbsp; ${worker}</div>
+            <div class="task-domain" title="${t.domain??''}">${(t.domain??"—").length>36?(t.domain??"").slice(0,34)+"…":t.domain??"—"}</div>
+            <div class="task-sub">vs ${t.brand_domain??"—"} · ${worker}</div>
           </div>
           <span class="tag ${src}">${src}</span>
           <span class="task-elapsed">⏱ ${elapsed}</span>
-          <button class="btn-task-stop" onclick="stopTask('${t.id}')">Stop</button>
-        `;
+          <button class="btn-task-stop" onclick="stopTask('${t.id}')">Stop</button>`;
       });
     }
   } catch { /* ignore */ }
 }
 
 async function stopAll() {
-  if (!confirm("Revoke all active tasks and purge queues?")) return;
+  if (!confirm("Stop all active tasks and purge queues?")) return;
   const btn = document.getElementById("btn-stop-all");
   btn.disabled = true; btn.textContent = "Stopping…";
   try {
     const r = await fetch("/workers/stop", { method: "POST" });
     const d = await r.json();
-    showScanStatus(`Stopped: ${d.revoked_tasks} tasks revoked, ${d.purged_messages} messages purged.`, "ok");
-  } catch(e) { showScanStatus(`Error: ${e.message}`, "err"); }
+    toast(`${d.revoked_tasks} tasks stopped, ${d.purged_messages} purged.`, "ok");
+  } catch(e) { toast(`Error: ${e.message}`, "err"); }
   finally { btn.disabled = false; btn.textContent = "Stop All"; refreshStatus(); }
 }
 
 async function stopTask(id) {
   await fetch(`/workers/tasks/${id}`, { method: "DELETE" });
-  showScanStatus(`Task ${id.slice(0,8)}… stopped.`, "ok");
+  toast(`Task stopped.`, "ok");
   refreshStatus();
 }
 
 refreshStatus();
 setInterval(refreshStatus, 3000);
 
-// ── Results (every 30 s) ──────────────────────────────────────────────────────
+// ── Results ───────────────────────────────────────────────────────────────────
 async function loadResults() {
   document.getElementById("tbl-loading").style.display = "block";
   document.getElementById("results-table").style.display = "none";
-
   const params = new URLSearchParams({ limit: 200 });
   const verdict  = document.getElementById("f-verdict").value;
   const minScore = document.getElementById("f-min-score").value;
@@ -649,207 +554,167 @@ async function loadResults() {
   if (verdict)  params.set("verdict", verdict);
   if (minScore) params.set("min_score", minScore);
   if (brand)    params.set("brand_domain", brand);
-
-  const rows = await fetch(`/results?${params}`).then(r => r.json());
-
+  const rows = await fetch(`/results?${params}`).then(r => r.json()).catch(() => []);
   const tbody = document.getElementById("results-body");
   tbody.innerHTML = rows.map(r => {
-    const col = r.score >= 70 ? "#ef4444" : r.score >= 40 ? "#f59e0b" : "#22c55e";
+    const col = r.score>=70?"#ef4444":r.score>=40?"#f59e0b":"#22c55e";
     const reg = r.registration_date ? r.registration_date.slice(0,10) : "—";
     return `<tr>
-      <td><a href="https://${r.domain}" target="_blank" rel="noopener" style="color:var(--accent)">${r.domain}</a></td>
-      <td>${r.brand_domain}</td>
       <td>
-        <div class="score-cell">
-          <span style="min-width:2.2rem;font-weight:600">${r.score}</span>
-          <div class="score-track"><div class="score-fill" style="width:${r.score}%;background:${col}"></div></div>
-        </div>
+        <a href="https://${r.domain}" target="_blank" rel="noopener" style="color:var(--accent)">${r.domain}</a>
+        ${r.is_parked?'<span style="background:#1e3a5f;color:#93c5fd;font-size:.62rem;padding:1px 5px;border-radius:3px;font-weight:700;margin-left:4px">PARKED</span>':''}
       </td>
+      <td>${r.brand_domain}</td>
+      <td><div class="score-cell"><span style="min-width:2.2rem;font-weight:700">${r.score}</span><div class="score-track"><div class="score-fill" style="width:${r.score}%;background:${col}"></div></div></div></td>
       <td><span class="verdict ${r.verdict}">${r.verdict}</span></td>
       <td style="white-space:nowrap">${reg}</td>
-      <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.registrar??''}">${r.registrar??'—'}</td>
-      <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.registrant_owner??''}">${r.registrant_owner??'—'}</td>
+      <td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.registrar??''}">${r.registrar??"—"}</td>
+      <td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.registrant_owner??''}">${r.registrant_owner??"—"}</td>
       <td>${r.source}</td>
-      <td style="white-space:nowrap">${new Date(r.scanned_at).toLocaleString()}</td>
     </tr>`;
   }).join("");
-
   document.getElementById("tbl-loading").style.display = "none";
   document.getElementById("results-table").style.display = "table";
 }
-
 loadResults();
 setInterval(loadResults, 30000);
 
-// ── Brands panel ──────────────────────────────────────────────────────────────
+// ── Brands page ───────────────────────────────────────────────────────────────
 async function loadBrands() {
-  const res    = await fetch("/brands");
-  const brands = await res.json();
-  const body   = document.getElementById("brands-body");
+  const container = document.getElementById("brands-container");
+  const brands = await fetch("/brands").then(r => r.json()).catch(() => []);
 
   if (!brands.length) {
-    body.innerHTML = '<div class="brands-empty">No brands registered yet. Scan a domain above to get started.</div>';
+    container.innerHTML = '<div style="padding:1.5rem;color:var(--muted);font-size:.85rem">No brands registered yet. Go to Dashboard and scan a domain to get started.</div>';
     return;
   }
 
-  // Preserve open drawers across refresh
   const openDrawers = new Set(
-    [...body.querySelectorAll(".brand-detail.open")].map(el => el.dataset.domain)
+    [...(container.querySelectorAll(".brand-drawer.open") || [])].map(el => el.dataset.domain)
   );
 
-  body.innerHTML = brands.map(b => {
-    const kw = b.keywords?.length ? b.keywords.join(", ") : "—";
-    const drawerOpen = openDrawers.has(b.domain) ? "open" : "";
-    return `
-    <div id="brand-row-${b.id}">
-      <div class="brand-row">
-        <div>
-          <button class="brand-name-btn" onclick="toggleBrandDetail('${b.domain}', ${b.id})">${b.domain}</button>
-          <div class="brand-kw">Keywords: ${kw}</div>
-        </div>
-        <div class="cnt critical">${b.critical}<span class="cnt-label">Critical</span></div>
-        <div class="cnt suspicious">${b.suspicious}<span class="cnt-label">Suspicious</span></div>
-        <div class="cnt clean">${b.clean}<span class="cnt-label">Clean</span></div>
-        <div class="cnt total">${b.total_scans}<span class="cnt-label">Total</span></div>
-        <button class="btn-delete-brand" onclick="deleteBrand('${b.domain}', ${b.id})">Delete</button>
-      </div>
-      <div class="brand-detail ${drawerOpen}" id="detail-${b.id}" data-domain="${b.domain}">
-        <div class="brand-detail-header">
-          <h3>Suspicious domains — ${b.domain}</h3>
-          <button class="btn-close-detail" onclick="toggleBrandDetail('${b.domain}', ${b.id})">✕</button>
-        </div>
-        <div id="detail-body-${b.id}"><div class="detail-loading">Loading…</div></div>
-      </div>
-    </div>`;
-  }).join("");
-
-  // Re-load open drawers after re-render
-  for (const domain of openDrawers) {
-    const brand = brands.find(b => b.domain === domain);
-    if (brand) loadBrandDetail(brand.domain, brand.id);
-  }
-}
-
-async function toggleBrandDetail(domain, id) {
-  const drawer = document.getElementById(`detail-${id}`);
-  const isOpen = drawer.classList.toggle("open");
-  if (isOpen) loadBrandDetail(domain, id);
-}
-
-async function loadBrandDetail(domain, id) {
-  const bodyEl = document.getElementById(`detail-body-${id}`);
-  if (!bodyEl) return;
-  bodyEl.innerHTML = '<div class="detail-loading">Loading…</div>';
-
-  try {
-    const params = new URLSearchParams({ brand_domain: domain, limit: 100 });
-    const res    = await fetch(`/results?${params}`);
-    if (!res.ok) throw new Error(`Server error ${res.status}: ${res.statusText}`);
-    const rows = await res.json();
-
-    // Sort by score descending, show non-clean only
-    rows.sort((a, b) => b.score - a.score);
-    const notable = rows.filter(r => r.verdict !== "CLEAN");
-
-    if (!notable.length) {
-      bodyEl.innerHTML = '<div class="detail-empty">No suspicious or critical domains found yet.</div>';
-      return;
-    }
-
-    bodyEl.innerHTML = `
-      <table class="detail-table">
-        <thead>
-          <tr>
-            <th>Domain</th>
-            <th>Score</th>
-            <th>Verdict</th>
-            <th>Registered</th>
-            <th>Registrar</th>
-            <th>Owner</th>
-            <th>Source</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${notable.map(r => {
-            const col = r.score >= 70 ? "#ef4444" : "#f59e0b";
-            const reg = r.registration_date ? r.registration_date.slice(0,10) : "—";
-            return `<tr>
+  container.innerHTML = `
+    <table class="brands-table">
+      <thead>
+        <tr>
+          <th>Domain</th>
+          <th style="text-align:center">Critical</th>
+          <th style="text-align:center">Suspicious</th>
+          <th style="text-align:center">Clean</th>
+          <th style="text-align:center">Total</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        ${brands.map(b => {
+          const kw = b.keywords?.length ? b.keywords.join(", ") : "—";
+          const drawerOpen = openDrawers.has(b.domain) ? "open" : "";
+          return `
+            <tr id="brand-row-${b.id}">
               <td>
-                <a href="https://${r.domain}" target="_blank" rel="noopener" style="color:var(--accent)">${r.domain}</a>
-                ${r.is_parked ? ' <span style="background:#1e3a5f;color:#93c5fd;font-size:0.65rem;padding:1px 6px;border-radius:4px;font-weight:700">PARKED</span>' : ''}
+                <button class="brand-name-btn" onclick="toggleDrawer('${b.domain}',${b.id})">${b.domain}</button>
+                <div class="brand-kw">Keywords: ${kw}</div>
               </td>
-              <td>
-                <div class="score-cell">
-                  <span style="min-width:2rem;font-weight:700">${r.score}</span>
-                  <div class="score-track"><div class="score-fill" style="width:${r.score}%;background:${col}"></div></div>
+              <td class="cnt c">${b.critical}</td>
+              <td class="cnt s">${b.suspicious}</td>
+              <td class="cnt ok">${b.clean}</td>
+              <td class="cnt t">${b.total_scans}</td>
+              <td><button class="btn-danger" onclick="deleteBrand('${b.domain}',${b.id})">Delete</button></td>
+            </tr>
+            <tr id="drawer-row-${b.id}">
+              <td colspan="6" style="padding:0">
+                <div class="brand-drawer ${drawerOpen}" id="drawer-${b.id}" data-domain="${b.domain}">
+                  <div class="drawer-head">
+                    <h3>Suspicious domains — ${b.domain}</h3>
+                    <button class="btn-close" onclick="toggleDrawer('${b.domain}',${b.id})">✕</button>
+                  </div>
+                  <div id="drawer-body-${b.id}"><div style="color:var(--muted);font-size:.8rem">Loading…</div></div>
                 </div>
               </td>
-              <td><span class="verdict ${r.verdict}">${r.verdict}</span></td>
-              <td style="white-space:nowrap">${reg}</td>
-              <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.registrar??''}">${r.registrar??'—'}</td>
-              <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.registrant_owner??''}">${r.registrant_owner??'—'}</td>
-              <td>${r.source}</td>
             </tr>`;
-          }).join("")}
-        </tbody>
-      </table>`;
+        }).join("")}
+      </tbody>
+    </table>`;
 
-  } catch (err) {
-    bodyEl.innerHTML = `
-      <div class="detail-empty" style="display:flex;align-items:center;gap:0.75rem">
-        <span style="color:var(--danger)">Failed to load: ${err.message}</span>
-        <button class="btn-refresh" onclick="loadBrandDetail('${domain}', ${id})">Retry</button>
-      </div>`;
+  // Re-open previously open drawers
+  for (const domain of openDrawers) {
+    const brand = brands.find(b => b.domain === domain);
+    if (brand) loadDrawer(brand.domain, brand.id);
   }
 }
 
-async function deleteBrand(domain, rowId) {
+async function toggleDrawer(domain, id) {
+  const drawer = document.getElementById(`drawer-${id}`);
+  if (!drawer) return;
+  const open = drawer.classList.toggle("open");
+  if (open) loadDrawer(domain, id);
+}
+
+async function loadDrawer(domain, id) {
+  const bodyEl = document.getElementById(`drawer-body-${id}`);
+  if (!bodyEl) return;
+  bodyEl.innerHTML = '<div style="color:var(--muted);font-size:.8rem">Loading…</div>';
+  try {
+    const rows = await fetch(`/results?brand_domain=${encodeURIComponent(domain)}&limit=100`).then(r => { if (!r.ok) throw new Error(r.statusText); return r.json(); });
+    const notable = rows.filter(r => r.verdict !== "CLEAN").sort((a,b) => b.score - a.score);
+    if (!notable.length) {
+      bodyEl.innerHTML = '<div style="color:var(--muted);font-size:.8rem;padding:.25rem 0">No suspicious or critical domains found yet.</div>';
+      return;
+    }
+    bodyEl.innerHTML = `
+      <table class="detail-table">
+        <thead><tr><th>Domain</th><th>Score</th><th>Verdict</th><th>Registered</th><th>Registrar</th><th>Owner</th><th>Source</th></tr></thead>
+        <tbody>${notable.map(r => {
+          const col = r.score>=70?"#ef4444":"#f59e0b";
+          const reg = r.registration_date ? r.registration_date.slice(0,10) : "—";
+          return `<tr>
+            <td>
+              <a href="https://${r.domain}" target="_blank" rel="noopener" style="color:var(--accent)">${r.domain}</a>
+              ${r.is_parked?'<span style="background:#1e3a5f;color:#93c5fd;font-size:.62rem;padding:1px 5px;border-radius:3px;font-weight:700;margin-left:4px">PARKED</span>':''}
+            </td>
+            <td><div class="score-cell"><span style="min-width:2rem;font-weight:700">${r.score}</span><div class="score-track"><div class="score-fill" style="width:${r.score}%;background:${col}"></div></div></div></td>
+            <td><span class="verdict ${r.verdict}">${r.verdict}</span></td>
+            <td style="white-space:nowrap">${reg}</td>
+            <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.registrar??''}">${r.registrar??"—"}</td>
+            <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.registrant_owner??''}">${r.registrant_owner??"—"}</td>
+            <td>${r.source}</td>
+          </tr>`;
+        }).join("")}</tbody>
+      </table>`;
+  } catch(e) {
+    bodyEl.innerHTML = `<div style="color:var(--danger);font-size:.8rem">Failed to load: ${e.message} <button class="btn-sm" onclick="loadDrawer('${domain}',${id})" style="margin-left:.5rem">Retry</button></div>`;
+  }
+}
+
+async function deleteBrand(domain, id) {
   if (!confirm(`Delete brand "${domain}" and all its scan results?`)) return;
   const res = await fetch(`/brands/${domain}?include_scan_results=true`, { method: "DELETE" });
   if (res.ok) {
-    document.getElementById(`brand-row-${rowId}`)?.remove();
-    const body = document.getElementById("brands-body");
-    if (!body.querySelector(".brand-row")) {
-      body.innerHTML = '<div class="brands-empty">No brands registered yet. Scan a domain above to get started.</div>';
-    }
+    document.getElementById(`brand-row-${id}`)?.remove();
+    document.getElementById(`drawer-row-${id}`)?.remove();
+    const tbody = document.querySelector(".brands-table tbody");
+    if (tbody && !tbody.querySelector("tr")) loadBrands();
+    toast(`Brand "${domain}" deleted.`, "ok");
     loadResults();
   } else {
-    const d = await res.json();
-    showScanStatus(`Delete failed: ${d.detail ?? res.statusText}`, "err");
+    const d = await res.json().catch(() => ({}));
+    toast(`Delete failed: ${d.detail ?? res.statusText}`, "err");
   }
 }
 
-loadBrands();
-setInterval(loadBrands, 30000);
-
 // ── Reset All ─────────────────────────────────────────────────────────────────
 async function nukeAll() {
-  const confirmed = confirm(
-    "⚠ RESET ALL\n\nThis will:\n• Stop every active and queued scan\n• Purge all Redis queues and locks\n• Delete all brands and scan results from the database\n\nThis cannot be undone. Continue?"
-  );
-  if (!confirmed) return;
-
+  if (!confirm("⚠ RESET ALL\n\nThis will:\n• Stop every active and queued scan\n• Purge all Redis queues and locks\n• Delete ALL brands and scan results\n\nThis cannot be undone. Continue?")) return;
   const btn = document.getElementById("btn-nuke");
-  btn.disabled = true;
-  btn.textContent = "Resetting…";
-
+  btn.disabled = true; btn.textContent = "Resetting…";
   try {
     const res  = await fetch("/admin/reset", { method: "POST" });
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail ?? res.statusText);
-
-    showScanStatus(
-      `Reset complete — ${data.revoked_tasks} tasks stopped, ${data.purged_messages} messages purged, database wiped.`,
-      "ok", 8000
-    );
-    // Refresh all panels
+    toast(`Reset complete — ${data.revoked_tasks} tasks stopped, database wiped.`, "ok", 8000);
     await Promise.all([loadBrands(), loadResults(), refreshStatus()]);
-  } catch (err) {
-    showScanStatus(`Reset failed: ${err.message}`, "err");
-  } finally {
-    btn.disabled = false;
-    btn.textContent = "⚠ Reset All";
-  }
+  } catch(e) { toast(`Reset failed: ${e.message}`, "err"); }
+  finally { btn.disabled = false; btn.textContent = "⚠ Reset All"; }
 }
 </script>
 </body>

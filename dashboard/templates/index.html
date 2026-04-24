@@ -17,344 +17,318 @@
       --muted: #64748b;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; }
+    body { background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; min-height: 100vh; }
 
+    /* ── Header ── */
     header {
       padding: 1rem 2rem;
       background: var(--surface);
       border-bottom: 1px solid var(--border);
       display: flex;
       align-items: center;
-      gap: 1rem;
+      justify-content: space-between;
     }
-    header h1 { font-size: 1.25rem; }
-    header .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--ok); animation: pulse 2s infinite; }
-    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+    header h1 { font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 0.6rem; }
+    .live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
+    .header-meta { font-size: 0.78rem; color: var(--muted); display: flex; gap: 1.5rem; }
+    .header-meta span b { color: var(--text); }
 
-    .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+    /* ── Layout ── */
+    .page { max-width: 960px; margin: 0 auto; padding: 2rem 1.5rem; display: flex; flex-direction: column; gap: 1.5rem; }
 
-    /* ── Add Domain panel ── */
-    .add-domain-panel {
+    /* ── Scan form ── */
+    .scan-card {
       background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 1.5rem;
-      margin-bottom: 2rem;
+      border-radius: 12px;
+      padding: 1.75rem;
     }
-    .add-domain-panel h2 {
-      font-size: 0.95rem;
-      font-weight: 600;
-      margin-bottom: 1rem;
-      color: var(--text);
-    }
-    .add-domain-form {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.75rem;
-      align-items: flex-end;
-    }
-    .field {
-      display: flex;
-      flex-direction: column;
-      gap: 0.35rem;
-      flex: 1;
-      min-width: 180px;
-    }
-    .field label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
-    .field input {
+    .scan-card h2 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 1.25rem; }
+    .scan-row { display: flex; gap: 0.75rem; align-items: flex-end; flex-wrap: wrap; }
+    .scan-field { display: flex; flex-direction: column; gap: 0.4rem; flex: 1; min-width: 180px; }
+    .scan-field label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+    .scan-field input {
       background: var(--bg);
       border: 1px solid var(--border);
       color: var(--text);
-      padding: 0.55rem 0.75rem;
-      border-radius: 6px;
-      font-size: 0.875rem;
-      width: 100%;
+      padding: 0.65rem 0.85rem;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      transition: border-color 0.15s;
     }
-    .field input:focus { outline: none; border-color: var(--accent); }
-    .form-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: flex-end; }
-    .btn {
-      border: none;
-      padding: 0.55rem 1.1rem;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 0.875rem;
-      font-weight: 500;
-      white-space: nowrap;
-    }
-    .btn-primary { background: var(--accent); color: #fff; }
-    .btn-secondary { background: #2e3247; color: var(--text); }
-    .btn-warn { background: #78350f; color: #fcd34d; }
-    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-    .btn-primary:hover:not(:disabled) { background: #3b78e7; }
-    .btn-secondary:hover:not(:disabled) { background: #3a3f5c; }
-    .btn-warn:hover:not(:disabled) { background: #92400e; }
+    .scan-field input:focus { outline: none; border-color: var(--accent); }
+    .scan-field input::placeholder { color: var(--muted); }
 
-    .toast-area { margin-top: 1rem; min-height: 1.5rem; }
+    .btn-scan {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 0.65rem 2rem;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .btn-scan:hover:not(:disabled) { background: #3b78e7; }
+    .btn-scan:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .scan-status { margin-top: 1rem; min-height: 1.4rem; }
     .toast {
       display: inline-flex;
       align-items: center;
       gap: 0.5rem;
-      padding: 0.5rem 0.9rem;
+      padding: 0.45rem 0.9rem;
       border-radius: 6px;
       font-size: 0.8rem;
       animation: fadein 0.2s ease;
     }
-    @keyframes fadein { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
-    .toast.ok  { background: #14532d; color: #86efac; }
-    .toast.err { background: #7f1d1d; color: #fca5a5; }
-    .toast.info{ background: #1e3a5f; color: #93c5fd; }
-    .spinner { width: 12px; height: 12px; border: 2px solid rgba(255,255,255,.3); border-top-color:#fff; border-radius:50%; animation: spin .7s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* ── Stats ── */
-    .stats {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-      gap: 1rem;
-      margin-bottom: 2rem;
-    }
-    .stat-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 1.25rem;
-    }
-    .stat-card .label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
-    .stat-card .value { font-size: 2rem; font-weight: 700; margin-top: 0.25rem; }
-    .stat-card.critical .value { color: var(--danger); }
-    .stat-card.suspicious .value { color: var(--warn); }
-    .stat-card.clean .value { color: var(--ok); }
-
-    /* ── Filters ── */
-    .controls {
-      display: flex;
-      gap: 1rem;
-      flex-wrap: wrap;
-      margin-bottom: 1.5rem;
-      align-items: center;
-    }
-    .controls input, .controls select {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      color: var(--text);
-      padding: 0.5rem 0.75rem;
-      border-radius: 6px;
-      font-size: 0.875rem;
-    }
-    .controls button {
-      background: var(--accent);
-      color: #fff;
-      border: none;
-      padding: 0.5rem 1.25rem;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 0.875rem;
-    }
-
-    /* ── Table ── */
-    table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
-    th, td { padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid var(--border); }
-    th { color: var(--muted); font-weight: 500; background: var(--surface); }
-    tr:hover td { background: #1f2335; }
-
-    .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
-    .badge.CRITICAL   { background: #7f1d1d; color: #fca5a5; }
-    .badge.SUSPICIOUS { background: #78350f; color: #fcd34d; }
-    .badge.CLEAN      { background: #14532d; color: #86efac; }
-
-    .score-bar { display: flex; align-items: center; gap: 0.5rem; }
-    .score-bar-track { flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
-    .score-bar-fill  { height: 100%; border-radius: 3px; transition: width 0.3s; }
-
-    #loading { text-align: center; padding: 2rem; color: var(--muted); }
-
-    /* ── Active scans panel ── */
-    .active-panel {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      margin-bottom: 2rem;
-      overflow: hidden;
-    }
-    .active-panel-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0.85rem 1.25rem;
-      cursor: pointer;
-      user-select: none;
-      border-bottom: 1px solid transparent;
-      transition: border-color 0.2s;
-    }
-    .active-panel-header.open { border-bottom-color: var(--border); }
-    .active-panel-header h2 { font-size: 0.9rem; font-weight: 600; display: flex; align-items: center; gap: 0.6rem; }
-    .active-panel-header .chevron { font-size: 0.75rem; color: var(--muted); transition: transform 0.2s; }
-    .active-panel-header.open .chevron { transform: rotate(90deg); }
-    .throughput-pills { display: flex; gap: 0.5rem; font-size: 0.75rem; }
-    .pill {
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 2px 10px;
-      color: var(--muted);
-    }
-    .pill span { color: var(--text); font-weight: 600; }
-    .active-panel-body { display: none; padding: 0.75rem 1.25rem; }
-    .active-panel-body.open { display: block; }
-    .active-task-list { display: flex; flex-direction: column; gap: 0.5rem; }
-    .active-task-row {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 0.6rem 0.9rem;
-      font-size: 0.8rem;
-    }
-    .task-domain { font-weight: 600; color: var(--accent); min-width: 180px; }
-    .task-brand  { color: var(--muted); min-width: 120px; }
-    .task-source { background: #1e3a5f; color: #93c5fd; padding: 1px 7px; border-radius: 4px; font-size: 0.7rem; }
-    .task-elapsed { color: var(--muted); margin-left: auto; white-space: nowrap; }
-    .task-stop { background: none; border: 1px solid #7f1d1d; color: #fca5a5; border-radius: 4px; padding: 2px 8px; font-size: 0.7rem; cursor: pointer; }
-    .task-stop:hover { background: #7f1d1d; }
-    .scanning-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--warn); animation: pulse 1.2s infinite; flex-shrink: 0; }
-    #active-empty { color: var(--muted); font-size: 0.85rem; padding: 0.5rem 0; }
+    @keyframes fadein { from { opacity:0; transform:translateY(-3px); } to { opacity:1; transform:none; } }
+    .toast.ok   { background: #14532d; color: #86efac; }
+    .toast.err  { background: #7f1d1d; color: #fca5a5; }
+    .toast.info { background: #1e3a5f; color: #93c5fd; }
 
     /* ── Status bar ── */
     .status-bar {
       background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      padding: 0.5rem 2rem;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem 1.25rem;
       display: flex;
       align-items: center;
-      gap: 1.5rem;
-      font-size: 0.8rem;
       flex-wrap: wrap;
+      gap: 1.25rem;
     }
-    .status-group { display: flex; align-items: center; gap: 0.4rem; color: var(--muted); }
-    .status-group .val { color: var(--text); font-weight: 600; }
-    .status-group .val.alive { color: var(--ok); }
-    .status-group .val.busy  { color: var(--warn); }
-    .status-group .val.dead  { color: var(--danger); }
-    .status-sep { color: var(--border); }
-    .btn-stop {
+    .sb-group { display: flex; flex-direction: column; gap: 0.2rem; }
+    .sb-label { font-size: 0.68rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+    .sb-value { font-size: 1.35rem; font-weight: 700; }
+    .sb-value.alive { color: var(--ok); }
+    .sb-value.busy  { color: var(--warn); }
+    .sb-value.dead  { color: var(--danger); }
+    .sb-divider { width: 1px; height: 2.5rem; background: var(--border); }
+    .btn-stop-all {
       margin-left: auto;
-      background: #7f1d1d;
+      background: transparent;
+      border: 1px solid #7f1d1d;
       color: #fca5a5;
-      border: none;
-      padding: 0.35rem 0.9rem;
+      padding: 0.4rem 1rem;
       border-radius: 6px;
-      cursor: pointer;
       font-size: 0.8rem;
       font-weight: 600;
+      cursor: pointer;
     }
-    .btn-stop:hover:not(:disabled) { background: #991b1b; }
-    .btn-stop:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-stop-all:hover:not(:disabled) { background: #7f1d1d; }
+    .btn-stop-all:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ── Active tasks ── */
+    .section-title {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .badge-count {
+      background: var(--warn);
+      color: #000;
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 10px;
+    }
+    .throughput-row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .tp-pill {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 3px 12px;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+    .tp-pill b { color: var(--text); }
+
+    .task-list { display: flex; flex-direction: column; gap: 0.5rem; }
+    .task-row {
+      display: grid;
+      grid-template-columns: 8px 1fr auto auto auto auto;
+      align-items: center;
+      gap: 0.75rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.7rem 1rem;
+      font-size: 0.82rem;
+    }
+    .task-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); animation: pulse 1.2s infinite; }
+    .task-main { display: flex; flex-direction: column; gap: 0.15rem; overflow: hidden; }
+    .task-domain { font-weight: 600; color: var(--accent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .task-sub { font-size: 0.72rem; color: var(--muted); }
+    .tag { padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 600; white-space: nowrap; }
+    .tag.sweep       { background: #1e3a5f; color: #93c5fd; }
+    .tag.manual      { background: #1a2e1a; color: #86efac; }
+    .tag.certstream  { background: #3b1f5e; color: #c4b5fd; }
+    .task-elapsed { color: var(--muted); font-size: 0.75rem; white-space: nowrap; }
+    .task-worker  { color: var(--muted); font-size: 0.72rem; white-space: nowrap; }
+    .btn-task-stop {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      border-radius: 4px;
+      padding: 2px 8px;
+      font-size: 0.7rem;
+      cursor: pointer;
+    }
+    .btn-task-stop:hover { border-color: var(--danger); color: #fca5a5; }
+
+    .empty-state { color: var(--muted); font-size: 0.85rem; padding: 0.75rem 0; }
+
+    /* ── Results ── */
+    .results-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
+    .filters { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
+    .filters select, .filters input {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.4rem 0.65rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+    }
+    .btn-refresh {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.4rem 0.9rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+    .btn-refresh:hover { border-color: var(--accent); color: var(--accent); }
+
+    table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+    th, td { padding: 0.65rem 0.85rem; text-align: left; border-bottom: 1px solid var(--border); }
+    th { color: var(--muted); font-weight: 500; background: var(--surface); position: sticky; top: 0; }
+    tr:hover td { background: #1f2335; }
+
+    .verdict { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.72rem; font-weight: 700; }
+    .verdict.CRITICAL   { background: #7f1d1d; color: #fca5a5; }
+    .verdict.SUSPICIOUS { background: #78350f; color: #fcd34d; }
+    .verdict.CLEAN      { background: #14532d; color: #86efac; }
+
+    .score-cell { display: flex; align-items: center; gap: 0.5rem; }
+    .score-track { flex:1; height:5px; background: var(--border); border-radius:3px; overflow:hidden; min-width:60px; }
+    .score-fill  { height:100%; border-radius:3px; }
+
+    .spinner { width:13px; height:13px; border:2px solid rgba(255,255,255,.25); border-top-color:#fff; border-radius:50%; animation:spin .7s linear infinite; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+
+    #tbl-loading { text-align:center; padding:2rem; color:var(--muted); }
   </style>
 </head>
 <body>
-  <header>
-    <div class="dot"></div>
-    <h1>Brand Protection Scanner</h1>
-  </header>
 
-  <!-- ── Status bar ── -->
-  <div class="status-bar" id="status-bar">
-    <div class="status-group">Workers <span class="val" id="sb-workers">—</span></div>
-    <div class="status-sep">|</div>
-    <div class="status-group">Active tasks <span class="val" id="sb-active">—</span></div>
-    <div class="status-sep">|</div>
-    <div class="status-group">Queued tasks <span class="val" id="sb-queued">—</span></div>
-    <div class="status-sep">|</div>
-    <div class="status-group">Scans queue <span class="val" id="sb-scans">—</span></div>
-    <div class="status-sep">|</div>
-    <div class="status-group">Discovery queue <span class="val" id="sb-discovery">—</span></div>
-    <button class="btn-stop" id="btn-stop-all" onclick="stopAll()">Stop All</button>
+<header>
+  <h1><div class="live-dot"></div> Brand Protection Scanner</h1>
+  <div class="header-meta">
+    <span>Workers <b id="h-workers">—</b></span>
+    <span>Active <b id="h-active">—</b></span>
+    <span>Scans queue <b id="h-scans">—</b></span>
+    <span>Discovery queue <b id="h-discovery">—</b></span>
+  </div>
+</header>
+
+<div class="page">
+
+  <!-- ── Scan form ── -->
+  <div class="scan-card">
+    <h2>Scan a domain</h2>
+    <div class="scan-row">
+      <div class="scan-field" style="max-width:300px">
+        <label>Brand URL</label>
+        <input id="f-url" type="text" placeholder="https://acme.com" />
+      </div>
+      <div class="scan-field">
+        <label>Keywords (comma-separated)</label>
+        <input id="f-keywords" type="text" placeholder="acme, acmecorp" />
+      </div>
+      <button class="btn-scan" id="btn-scan" onclick="startScan()">
+        <span id="scan-btn-label">Scan</span>
+      </button>
+    </div>
+    <div class="scan-status" id="scan-status"></div>
   </div>
 
-  <div class="container">
+  <!-- ── Live status ── -->
+  <div class="status-bar">
+    <div class="sb-group">
+      <div class="sb-label">Workers</div>
+      <div class="sb-value" id="sb-workers">—</div>
+    </div>
+    <div class="sb-divider"></div>
+    <div class="sb-group">
+      <div class="sb-label">Active tasks</div>
+      <div class="sb-value" id="sb-active">—</div>
+    </div>
+    <div class="sb-divider"></div>
+    <div class="sb-group">
+      <div class="sb-label">Scans queue</div>
+      <div class="sb-value" id="sb-scans">—</div>
+    </div>
+    <div class="sb-divider"></div>
+    <div class="sb-group">
+      <div class="sb-label">Discovery queue</div>
+      <div class="sb-value" id="sb-discovery">—</div>
+    </div>
+    <div class="sb-divider"></div>
+    <div class="sb-group">
+      <div class="sb-label">Rate</div>
+      <div class="sb-value" id="sb-rate">—<span style="font-size:0.75rem;color:var(--muted)">/min</span></div>
+    </div>
+    <button class="btn-stop-all" id="btn-stop-all" onclick="stopAll()">Stop All</button>
+  </div>
 
-    <!-- ── Active Scans ── -->
-    <div class="active-panel">
-      <div class="active-panel-header" id="active-header" onclick="toggleActive()">
-        <h2>
-          <div class="scanning-dot" id="scanning-dot" style="display:none"></div>
-          Active Scans
-          <span id="active-count-badge" style="color:var(--muted);font-weight:400"></span>
-        </h2>
-        <div style="display:flex;align-items:center;gap:1rem">
-          <div class="throughput-pills">
-            <div class="pill">1 min <span id="tp-1m">—</span></div>
-            <div class="pill">10 min <span id="tp-10m">—</span></div>
-            <div class="pill">1 h <span id="tp-1h">—</span></div>
-            <div class="pill">Rate <span id="tp-rate">—</span>/min</div>
-          </div>
-          <span class="chevron">▶</span>
-        </div>
+  <!-- ── Active tasks ── -->
+  <div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;flex-wrap:wrap;gap:0.75rem">
+      <div class="section-title">
+        Active scans
+        <span class="badge-count" id="active-badge" style="display:none">0</span>
       </div>
-      <div class="active-panel-body" id="active-body">
-        <div class="active-task-list" id="active-task-list">
-          <div id="active-empty">No active scans.</div>
-        </div>
+      <div class="throughput-row">
+        <div class="tp-pill">1 min <b id="tp-1m">—</b></div>
+        <div class="tp-pill">10 min <b id="tp-10m">—</b></div>
+        <div class="tp-pill">1 h <b id="tp-1h">—</b></div>
+      </div>
+    </div>
+    <div class="task-list" id="task-list">
+      <div class="empty-state" id="task-empty">No active scans right now.</div>
+    </div>
+  </div>
+
+  <!-- ── Results ── -->
+  <div>
+    <div class="results-header" style="margin-bottom:0.75rem">
+      <div class="section-title">Results</div>
+      <div class="filters">
+        <select id="f-verdict">
+          <option value="">All verdicts</option>
+          <option value="CRITICAL">Critical</option>
+          <option value="SUSPICIOUS">Suspicious</option>
+          <option value="CLEAN">Clean</option>
+        </select>
+        <input id="f-min-score" type="number" placeholder="Min score" min="0" max="100" style="width:100px" />
+        <input id="f-brand" type="text" placeholder="Brand domain" style="width:150px" />
+        <button class="btn-refresh" onclick="loadResults()">Refresh</button>
       </div>
     </div>
 
-    <!-- ── Add Domain ── -->
-    <div class="add-domain-panel">
-      <h2>Add Domain to Monitor</h2>
-      <div class="add-domain-form">
-        <div class="field" style="max-width:260px">
-          <label>Brand URL</label>
-          <input id="add-url" type="text" placeholder="https://acme.com" />
-        </div>
-        <div class="field" style="max-width:260px">
-          <label>Keywords (comma-separated)</label>
-          <input id="add-keywords" type="text" placeholder="acme, acmecorp" />
-        </div>
-        <div class="form-actions">
-          <button class="btn btn-primary"    id="btn-fingerprint" onclick="addDomain('fingerprint')">Fingerprint</button>
-          <button class="btn btn-secondary"  id="btn-sweep"       onclick="addDomain('sweep')">Sweep</button>
-          <button class="btn btn-warn"       id="btn-certstream"  onclick="addDomain('certstream')">Watch Certstream</button>
-        </div>
-      </div>
-      <div class="toast-area" id="toast-area"></div>
-    </div>
-
-    <!-- ── Stats ── -->
-    <div class="stats">
-      <div class="stat-card critical">
-        <div class="label">Critical</div>
-        <div class="value" id="count-critical">—</div>
-      </div>
-      <div class="stat-card suspicious">
-        <div class="label">Suspicious</div>
-        <div class="value" id="count-suspicious">—</div>
-      </div>
-      <div class="stat-card clean">
-        <div class="label">Clean</div>
-        <div class="value" id="count-clean">—</div>
-      </div>
-      <div class="stat-card">
-        <div class="label">Total Scanned</div>
-        <div class="value" id="count-total">—</div>
-      </div>
-    </div>
-
-    <!-- ── Filters + Results ── -->
-    <div class="controls">
-      <select id="filter-verdict">
-        <option value="">All Verdicts</option>
-        <option value="CRITICAL">Critical</option>
-        <option value="SUSPICIOUS">Suspicious</option>
-        <option value="CLEAN">Clean</option>
-      </select>
-      <input id="filter-min-score" type="number" placeholder="Min score" min="0" max="100" />
-      <input id="filter-brand" type="text" placeholder="Brand domain" />
-      <button onclick="loadResults()">Refresh</button>
-    </div>
-
-    <div id="loading">Loading results…</div>
+    <div id="tbl-loading">Loading…</div>
     <table id="results-table" style="display:none">
       <thead>
         <tr>
@@ -373,277 +347,229 @@
     </table>
   </div>
 
-  <script>
-    // ── Toast helper ──────────────────────────────────────────────────────────
-    function toast(msg, type = "info", duration = 5000) {
-      const area = document.getElementById("toast-area");
-      area.innerHTML = `<div class="toast ${type}">${msg}</div>`;
-      if (duration) setTimeout(() => { area.innerHTML = ""; }, duration);
-    }
+</div><!-- /page -->
 
-    function setLoading(btn, loading) {
-      btn.disabled = loading;
-      if (loading) {
-        btn._label = btn.textContent;
-        btn.innerHTML = `<span class="spinner"></span>`;
-      } else {
-        btn.textContent = btn._label;
-      }
-    }
+<script>
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function showScanStatus(msg, type, duration = 6000) {
+  const el = document.getElementById("scan-status");
+  el.innerHTML = `<div class="toast ${type}">${msg}</div>`;
+  if (duration) setTimeout(() => { el.innerHTML = ""; }, duration);
+}
 
-    // ── Add Domain ────────────────────────────────────────────────────────────
-    async function addDomain(action) {
-      const rawUrl = document.getElementById("add-url").value.trim();
-      const rawKw  = document.getElementById("add-keywords").value.trim();
+function setScanLoading(loading) {
+  const btn   = document.getElementById("btn-scan");
+  const label = document.getElementById("scan-btn-label");
+  btn.disabled = loading;
+  label.innerHTML = loading ? '<span class="spinner"></span>' : "Scan";
+}
 
-      if (!rawUrl) { toast("Enter a brand URL first.", "err"); return; }
+// ── Scan button ───────────────────────────────────────────────────────────────
+async function startScan() {
+  const rawUrl = document.getElementById("f-url").value.trim();
+  const rawKw  = document.getElementById("f-keywords").value.trim();
 
-      // Normalise: ensure https:// prefix
-      const brandUrl = rawUrl.startsWith("http") ? rawUrl : `https://${rawUrl}`;
+  if (!rawUrl) { showScanStatus("Enter a brand URL.", "err"); return; }
 
-      // Extract bare domain for sweep/certstream
-      let brandDomain;
-      try {
-        brandDomain = new URL(brandUrl).hostname.replace(/^www\./, "");
-      } catch {
-        toast("Invalid URL.", "err"); return;
-      }
+  const brandUrl = rawUrl.startsWith("http") ? rawUrl : `https://${rawUrl}`;
+  let brandDomain;
+  try { brandDomain = new URL(brandUrl).hostname.replace(/^www\./, ""); }
+  catch { showScanStatus("Invalid URL.", "err"); return; }
 
-      const keywords = rawKw ? rawKw.split(",").map(k => k.trim()).filter(Boolean) : [];
+  const keywords = rawKw ? rawKw.split(",").map(k => k.trim()).filter(Boolean) : [];
 
-      const btnMap = { fingerprint: "btn-fingerprint", sweep: "btn-sweep", certstream: "btn-certstream" };
-      const btn = document.getElementById(btnMap[action]);
-      setLoading(btn, true);
+  setScanLoading(true);
+  showScanStatus('<span class="spinner"></span>&nbsp; Fingerprinting brand…', "info", 0);
 
-      try {
-        if (action === "fingerprint") {
-          toast(`<span class="spinner"></span>&nbsp; Fingerprinting ${brandDomain} — this may take ~15 s…`, "info", 0);
-          const res = await fetch("/brands/fingerprint", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ brand_url: brandUrl }),
-          });
-          const data = await res.json();
-          if (!res.ok) throw new Error(data.detail || res.statusText);
-          toast(`Fingerprint saved for <strong>${data.domain}</strong>. pHash: ${data.logo_phash ?? "n/a"}`, "ok");
+  try {
+    // 1. Fingerprint
+    const fpRes  = await fetch("/brands/fingerprint", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ brand_url: brandUrl }),
+    });
+    if (!fpRes.ok) throw new Error((await fpRes.json()).detail ?? fpRes.statusText);
 
-        } else if (action === "sweep") {
-          const res = await fetch("/sweep", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ domain: brandDomain, keywords }),
-          });
-          const data = await res.json();
-          if (!res.ok) throw new Error(data.detail || res.statusText);
-          toast(`Sweep queued for <strong>${brandDomain}</strong> — ~${data.candidates_estimated} candidates. Task: ${data.task_id.slice(0,8)}…`, "ok");
+    showScanStatus('<span class="spinner"></span>&nbsp; Queuing sweep…', "info", 0);
 
-        } else if (action === "certstream") {
-          const res = await fetch("/monitor/certstream", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ domain: brandDomain, keywords }),
-          });
-          const data = await res.json();
-          if (!res.ok) throw new Error(data.detail || res.statusText);
-          toast(data.message, "ok");
-        }
-      } catch (err) {
-        toast(`Error: ${err.message}`, "err");
-      } finally {
-        setLoading(btn, false);
-      }
-    }
+    // 2. Sweep
+    const swRes  = await fetch("/sweep", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ domain: brandDomain, keywords }),
+    });
+    const swData = await swRes.json();
+    if (!swRes.ok) throw new Error(swData.detail ?? swRes.statusText);
 
-    // Submit on Enter inside the inputs
-    document.addEventListener("DOMContentLoaded", () => {
-      ["add-url", "add-keywords"].forEach(id => {
-        document.getElementById(id).addEventListener("keydown", e => {
-          if (e.key === "Enter") addDomain("fingerprint");
-        });
-      });
+    // 3. Certstream
+    await fetch("/monitor/certstream", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ domain: brandDomain, keywords }),
     });
 
-    // ── Results ───────────────────────────────────────────────────────────────
-    async function loadResults() {
-      document.getElementById("loading").style.display = "block";
-      document.getElementById("results-table").style.display = "none";
+    showScanStatus(
+      `Scan started for <b>${brandDomain}</b> — ${swData.candidates_estimated} candidates queued. Certstream monitoring active.`,
+      "ok"
+    );
+  } catch(err) {
+    showScanStatus(`Error: ${err.message}`, "err");
+  } finally {
+    setScanLoading(false);
+  }
+}
 
-      const verdict  = document.getElementById("filter-verdict").value;
-      const minScore = document.getElementById("filter-min-score").value;
-      const brand    = document.getElementById("filter-brand").value;
+document.addEventListener("DOMContentLoaded", () => {
+  ["f-url","f-keywords"].forEach(id => {
+    document.getElementById(id).addEventListener("keydown", e => {
+      if (e.key === "Enter") startScan();
+    });
+  });
+});
 
-      const params = new URLSearchParams({ limit: 200 });
-      if (verdict)  params.set("verdict", verdict);
-      if (minScore) params.set("min_score", minScore);
-      if (brand)    params.set("brand_domain", brand);
+// ── Status + active tasks (every 3 s) ────────────────────────────────────────
+async function refreshStatus() {
+  try {
+    const [sRes, tRes] = await Promise.all([
+      fetch("/workers/status"),
+      fetch("/workers/throughput"),
+    ]);
+    const s = await sRes.json();
+    const t = await tRes.json();
 
-      const res  = await fetch(`/results?${params}`);
-      const rows = await res.json();
+    // Header
+    const wCount = s.worker_count ?? 0;
+    const active = s.total_active ?? 0;
+    document.getElementById("h-workers").textContent   = wCount;
+    document.getElementById("h-active").textContent    = active;
+    document.getElementById("h-scans").textContent     = s.queues?.scans    ?? "—";
+    document.getElementById("h-discovery").textContent = s.queues?.discovery ?? "—";
 
-      const counts = { CRITICAL: 0, SUSPICIOUS: 0, CLEAN: 0 };
-      rows.forEach(r => { if (counts[r.verdict] !== undefined) counts[r.verdict]++; });
+    // Status bar
+    const wEl = document.getElementById("sb-workers");
+    wEl.textContent = wCount;
+    wEl.className = "sb-value " + (wCount === 0 ? "dead" : active > 0 ? "busy" : "alive");
+    document.getElementById("sb-active").textContent    = active;
+    document.getElementById("sb-scans").textContent     = s.queues?.scans    ?? "—";
+    document.getElementById("sb-discovery").textContent = s.queues?.discovery ?? "—";
+    document.getElementById("sb-rate").innerHTML =
+      `${t.rate_per_min ?? "—"}<span style="font-size:0.75rem;color:var(--muted)">/min</span>`;
 
-      document.getElementById("count-critical").textContent   = counts.CRITICAL;
-      document.getElementById("count-suspicious").textContent = counts.SUSPICIOUS;
-      document.getElementById("count-clean").textContent      = counts.CLEAN;
-      document.getElementById("count-total").textContent      = rows.length;
+    // Throughput
+    document.getElementById("tp-1m").textContent  = t.last_1m  ?? "—";
+    document.getElementById("tp-10m").textContent = t.last_10m ?? "—";
+    document.getElementById("tp-1h").textContent  = t.last_1h  ?? "—";
 
-      const tbody = document.getElementById("results-body");
-      tbody.innerHTML = rows.map(r => {
-        const scoreColor = r.score >= 70 ? "#ef4444" : r.score >= 40 ? "#f59e0b" : "#22c55e";
-        return `<tr>
-          <td><a href="https://${r.domain}" target="_blank" rel="noopener" style="color:#4f8ef7">${r.domain}</a></td>
-          <td>${r.brand_domain}</td>
-          <td>
-            <div class="score-bar">
-              <span style="min-width:2.5rem">${r.score}</span>
-              <div class="score-bar-track">
-                <div class="score-bar-fill" style="width:${r.score}%;background:${scoreColor}"></div>
-              </div>
-            </div>
-          </td>
-          <td><span class="badge ${r.verdict}">${r.verdict}</span></td>
-          <td style="white-space:nowrap">${r.registration_date ? r.registration_date.slice(0,10) : '<span style="color:var(--muted)">—</span>'}</td>
-          <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.registrar ?? ''}">${r.registrar ?? '<span style="color:var(--muted)">—</span>'}</td>
-          <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.registrant_owner ?? ''}">${r.registrant_owner ?? '<span style="color:var(--muted)">—</span>'}</td>
-          <td>${r.source}</td>
-          <td>${new Date(r.scanned_at).toLocaleString()}</td>
-        </tr>`;
-      }).join("");
+    // Active task rows
+    const tasks = s.active_tasks ?? [];
+    const badge = document.getElementById("active-badge");
+    badge.textContent = tasks.length;
+    badge.style.display = tasks.length ? "inline" : "none";
 
-      document.getElementById("loading").style.display = "none";
-      document.getElementById("results-table").style.display = "table";
-    }
-
-    loadResults();
-    setInterval(loadResults, 30000);
-
-    // ── Status bar ────────────────────────────────────────────────────────────
-    async function refreshStatus() {
-      try {
-        const res  = await fetch("/workers/status");
-        const data = await res.json();
-
-        const wCount  = data.worker_count  ?? 0;
-        const active  = data.total_active  ?? 0;
-        const reserved= data.total_reserved?? 0;
-        const scans   = data.queues?.scans    ?? 0;
-        const disc    = data.queues?.discovery ?? 0;
-
-        const wEl = document.getElementById("sb-workers");
-        wEl.textContent = wCount;
-        wEl.className   = "val " + (wCount === 0 ? "dead" : active > 0 ? "busy" : "alive");
-
-        const aEl = document.getElementById("sb-active");
-        aEl.textContent = active;
-        aEl.className   = "val " + (active > 0 ? "busy" : "");
-
-        document.getElementById("sb-queued").textContent   = reserved;
-        document.getElementById("sb-scans").textContent    = scans;
-        document.getElementById("sb-discovery").textContent= disc;
-      } catch {
-        // workers unreachable — leave last values
-      }
-    }
-
-    async function stopAll() {
-      if (!confirm("Revoke all active tasks and purge queues?")) return;
-      const btn = document.getElementById("btn-stop-all");
-      btn.disabled = true;
-      btn.textContent = "Stopping…";
-      try {
-        const res  = await fetch("/workers/stop", { method: "POST" });
-        const data = await res.json();
-        toast(`Stopped: ${data.revoked_tasks} tasks revoked, ${data.purged_messages} messages purged.`, "ok");
-      } catch (err) {
-        toast(`Error: ${err.message}`, "err");
-      } finally {
-        btn.disabled = false;
-        btn.textContent = "Stop All";
-        refreshStatus();
-      }
-    }
-
-    // ── Active scans panel ──────────────────────────────────────────────────
-    let activePanelOpen = false;
-
-    function toggleActive() {
-      activePanelOpen = !activePanelOpen;
-      document.getElementById("active-header").classList.toggle("open", activePanelOpen);
-      document.getElementById("active-body").classList.toggle("open", activePanelOpen);
-    }
-
-    async function refreshActiveTasks() {
-      try {
-        const [statusRes, tpRes] = await Promise.all([
-          fetch("/workers/status"),
-          fetch("/workers/throughput"),
-        ]);
-        const status = await statusRes.json();
-        const tp     = await tpRes.json();
-
-        // Throughput pills
-        document.getElementById("tp-1m").textContent   = tp.last_1m  ?? "—";
-        document.getElementById("tp-10m").textContent  = tp.last_10m ?? "—";
-        document.getElementById("tp-1h").textContent   = tp.last_1h  ?? "—";
-        document.getElementById("tp-rate").textContent = tp.rate_per_min ?? "—";
-
-        const tasks = status.active_tasks ?? [];
-        const count = tasks.length;
-
-        // Badge + scanning dot
-        document.getElementById("active-count-badge").textContent = count ? `(${count})` : "";
-        document.getElementById("scanning-dot").style.display = count ? "block" : "none";
-
-        // Auto-open panel when tasks appear
-        if (count > 0 && !activePanelOpen) toggleActive();
-
-        const list  = document.getElementById("active-task-list");
-        const empty = document.getElementById("active-empty");
-
-        if (count === 0) {
-          list.innerHTML = "";
-          empty.style.display = "block";
-          return;
+    const list  = document.getElementById("task-list");
+    const empty = document.getElementById("task-empty");
+    if (tasks.length === 0) {
+      list.innerHTML = "";
+      list.appendChild(empty);
+      empty.style.display = "block";
+    } else {
+      empty.style.display = "none";
+      // Keep existing rows if IDs match (avoid flicker)
+      const existing = new Set([...list.querySelectorAll("[data-tid]")].map(el => el.dataset.tid));
+      const incoming = new Set(tasks.map(t => t.id));
+      // Remove gone tasks
+      existing.forEach(id => { if (!incoming.has(id)) list.querySelector(`[data-tid="${id}"]`)?.remove(); });
+      // Add / update
+      tasks.forEach(t => {
+        const elapsed = t.elapsed_sec != null ? `${t.elapsed_sec}s` : "—";
+        const worker  = (t.worker ?? "").split("@").pop() ?? "—";
+        const src     = t.source ?? "manual";
+        let el = list.querySelector(`[data-tid="${t.id}"]`);
+        if (!el) {
+          el = document.createElement("div");
+          el.className = "task-row";
+          el.dataset.tid = t.id;
+          list.appendChild(el);
         }
-        empty.style.display = "none";
-
-        list.innerHTML = tasks.map(t => {
-          const elapsed     = t.elapsed_sec != null ? `${t.elapsed_sec}s` : "—";
-          const domain      = t.domain       ?? "—";
-          const brand       = t.brand_domain ?? "—";
-          const source      = t.source       ?? "—";
-          const taskId      = t.id;
-          const workerShort = (t.worker ?? "").split("@").pop() ?? "—";
-
-          return `<div class="active-task-row" id="task-${taskId}">
-            <div class="scanning-dot"></div>
-            <div class="task-domain" title="${domain}">${domain.length > 30 ? domain.slice(0,28)+"…" : domain}</div>
-            <div class="task-brand">vs ${brand}</div>
-            <span class="task-source">${source}</span>
-            <span style="color:var(--muted);font-size:0.75rem">${workerShort}</span>
-            <div class="task-elapsed">⏱ ${elapsed}</div>
-            <button class="task-stop" onclick="stopTask('${taskId}')">Stop</button>
-          </div>`;
-        }).join("");
-
-      } catch {
-        // silently ignore
-      }
+        el.innerHTML = `
+          <div class="task-dot"></div>
+          <div class="task-main">
+            <div class="task-domain" title="${t.domain ?? ''}">${(t.domain ?? "—").length > 35 ? (t.domain ?? "").slice(0,33)+"…" : (t.domain ?? "—")}</div>
+            <div class="task-sub">vs ${t.brand_domain ?? "—"} &nbsp;·&nbsp; ${worker}</div>
+          </div>
+          <span class="tag ${src}">${src}</span>
+          <span class="task-elapsed">⏱ ${elapsed}</span>
+          <button class="btn-task-stop" onclick="stopTask('${t.id}')">Stop</button>
+        `;
+      });
     }
+  } catch { /* ignore */ }
+}
 
-    async function stopTask(taskId) {
-      await fetch(`/workers/tasks/${taskId}`, { method: "DELETE" });
-      document.getElementById(`task-${taskId}`)?.remove();
-      toast(`Task ${taskId.slice(0,8)}… revoked.`, "ok");
-      refreshActiveTasks();
-    }
+async function stopAll() {
+  if (!confirm("Revoke all active tasks and purge queues?")) return;
+  const btn = document.getElementById("btn-stop-all");
+  btn.disabled = true; btn.textContent = "Stopping…";
+  try {
+    const r = await fetch("/workers/stop", { method: "POST" });
+    const d = await r.json();
+    showScanStatus(`Stopped: ${d.revoked_tasks} tasks revoked, ${d.purged_messages} messages purged.`, "ok");
+  } catch(e) { showScanStatus(`Error: ${e.message}`, "err"); }
+  finally { btn.disabled = false; btn.textContent = "Stop All"; refreshStatus(); }
+}
 
-    refreshActiveTasks();
-    setInterval(refreshActiveTasks, 3000);
+async function stopTask(id) {
+  await fetch(`/workers/tasks/${id}`, { method: "DELETE" });
+  showScanStatus(`Task ${id.slice(0,8)}… stopped.`, "ok");
+  refreshStatus();
+}
 
-    refreshStatus();
-    setInterval(refreshStatus, 5000);
-  </script>
+refreshStatus();
+setInterval(refreshStatus, 3000);
+
+// ── Results (every 30 s) ──────────────────────────────────────────────────────
+async function loadResults() {
+  document.getElementById("tbl-loading").style.display = "block";
+  document.getElementById("results-table").style.display = "none";
+
+  const params = new URLSearchParams({ limit: 200 });
+  const verdict  = document.getElementById("f-verdict").value;
+  const minScore = document.getElementById("f-min-score").value;
+  const brand    = document.getElementById("f-brand").value;
+  if (verdict)  params.set("verdict", verdict);
+  if (minScore) params.set("min_score", minScore);
+  if (brand)    params.set("brand_domain", brand);
+
+  const rows = await fetch(`/results?${params}`).then(r => r.json());
+
+  const tbody = document.getElementById("results-body");
+  tbody.innerHTML = rows.map(r => {
+    const col = r.score >= 70 ? "#ef4444" : r.score >= 40 ? "#f59e0b" : "#22c55e";
+    const reg = r.registration_date ? r.registration_date.slice(0,10) : "—";
+    return `<tr>
+      <td><a href="https://${r.domain}" target="_blank" rel="noopener" style="color:var(--accent)">${r.domain}</a></td>
+      <td>${r.brand_domain}</td>
+      <td>
+        <div class="score-cell">
+          <span style="min-width:2.2rem;font-weight:600">${r.score}</span>
+          <div class="score-track"><div class="score-fill" style="width:${r.score}%;background:${col}"></div></div>
+        </div>
+      </td>
+      <td><span class="verdict ${r.verdict}">${r.verdict}</span></td>
+      <td style="white-space:nowrap">${reg}</td>
+      <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.registrar??''}">${r.registrar??'—'}</td>
+      <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.registrant_owner??''}">${r.registrant_owner??'—'}</td>
+      <td>${r.source}</td>
+      <td style="white-space:nowrap">${new Date(r.scanned_at).toLocaleString()}</td>
+    </tr>`;
+  }).join("");
+
+  document.getElementById("tbl-loading").style.display = "none";
+  document.getElementById("results-table").style.display = "table";
+}
+
+loadResults();
+setInterval(loadResults, 30000);
+</script>
 </body>
 </html>

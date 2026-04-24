@@ -113,6 +113,44 @@ async def list_brands(db: AsyncSession = Depends(get_db)):
     ]
 
 
+def _cancel_brand_tasks(brand_domain: str) -> dict:
+    """
+    Revoke all active + reserved Celery tasks that belong to this brand,
+    then delete their Redis scan locks so workers stop immediately and
+    new tasks for this brand can be queued cleanly.
+    """
+    from workers.pipeline import app as celery_app
+    import redis as sync_redis
+
+    inspector = celery_app.control.inspect(timeout=2.0)
+    active    = inspector.active()   or {}
+    reserved  = inspector.reserved() or {}
+
+    revoked = 0
+    lock_keys: list[str] = []
+
+    for tasks in list(active.values()) + list(reserved.values()):
+        for task in tasks:
+            kwargs = task.get("kwargs", {})
+            if kwargs.get("brand_domain") == brand_domain:
+                celery_app.control.revoke(task["id"], terminate=True, signal="SIGTERM")
+                revoked += 1
+                # Collect the lock key for this (candidate, brand) pair
+                candidate = kwargs.get("domain")
+                if candidate:
+                    lock_keys.append(f"scan:lock:{candidate}:{brand_domain}")
+
+    # Also sweep Redis for any stale lock keys matching this brand
+    r = sync_redis.from_url(settings.redis_url, decode_responses=True)
+    pattern_keys = r.keys(f"scan:lock:*:{brand_domain}")
+    all_keys = list(set(lock_keys + pattern_keys))
+    if all_keys:
+        r.delete(*all_keys)
+    r.close()
+
+    return {"revoked_tasks": revoked, "locks_cleared": len(all_keys)}
+
+
 @router.delete("/{domain}", tags=["brands"])
 async def delete_brand(
     domain: str,
@@ -121,12 +159,16 @@ async def delete_brand(
 ):
     """
     Delete a brand fingerprint by domain name.
-    Pass ?include_scan_results=true to also wipe all scan results for this brand.
+    Always stops all active/queued scan tasks for this brand.
+    Pass ?include_scan_results=true to also wipe all scan results.
     """
     result = await db.execute(select(Brand).where(Brand.domain == domain))
     brand = result.scalar_one_or_none()
     if not brand:
         raise HTTPException(status_code=404, detail=f"Brand '{domain}' not found.")
+
+    # Stop all running/queued tasks for this brand first
+    cancellation = _cancel_brand_tasks(domain)
 
     if include_scan_results:
         await db.execute(delete(ScanResult).where(ScanResult.brand_domain == domain))
@@ -137,6 +179,7 @@ async def delete_brand(
     return {
         "deleted": domain,
         "scan_results_deleted": include_scan_results,
+        **cancellation,
     }
 
 

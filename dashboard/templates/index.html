@@ -336,6 +336,11 @@
     <span>Scans queue <b id="h-scans">—</b></span>
     <span>Discovery queue <b id="h-discovery">—</b></span>
   </div>
+  <button id="btn-nuke" onclick="nukeAll()" style="
+    background:#7f1d1d;color:#fca5a5;border:1px solid #991b1b;
+    padding:0.4rem 1rem;border-radius:6px;font-size:0.8rem;
+    font-weight:700;cursor:pointer;white-space:nowrap;
+  ">⚠ Reset All</button>
 </header>
 
 <div class="page">
@@ -813,6 +818,36 @@ async function deleteBrand(domain, rowId) {
 
 loadBrands();
 setInterval(loadBrands, 30000);
+
+// ── Reset All ─────────────────────────────────────────────────────────────────
+async function nukeAll() {
+  const confirmed = confirm(
+    "⚠ RESET ALL\n\nThis will:\n• Stop every active and queued scan\n• Purge all Redis queues and locks\n• Delete all brands and scan results from the database\n\nThis cannot be undone. Continue?"
+  );
+  if (!confirmed) return;
+
+  const btn = document.getElementById("btn-nuke");
+  btn.disabled = true;
+  btn.textContent = "Resetting…";
+
+  try {
+    const res  = await fetch("/admin/reset", { method: "POST" });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail ?? res.statusText);
+
+    showScanStatus(
+      `Reset complete — ${data.revoked_tasks} tasks stopped, ${data.purged_messages} messages purged, database wiped.`,
+      "ok", 8000
+    );
+    // Refresh all panels
+    await Promise.all([loadBrands(), loadResults(), refreshStatus()]);
+  } catch (err) {
+    showScanStatus(`Reset failed: ${err.message}`, "err");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "⚠ Reset All";
+  }
+}
 </script>
 </body>
 </html>

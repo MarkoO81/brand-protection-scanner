@@ -733,54 +733,66 @@ async function toggleBrandDetail(domain, id) {
 
 async function loadBrandDetail(domain, id) {
   const bodyEl = document.getElementById(`detail-body-${id}`);
+  if (!bodyEl) return;
   bodyEl.innerHTML = '<div class="detail-loading">Loading…</div>';
 
-  const params = new URLSearchParams({ brand_domain: domain, limit: 100 });
-  const rows   = await fetch(`/results?${params}`).then(r => r.json());
+  try {
+    const params = new URLSearchParams({ brand_domain: domain, limit: 100 });
+    const res    = await fetch(`/results?${params}`);
+    if (!res.ok) throw new Error(`Server error ${res.status}: ${res.statusText}`);
+    const rows = await res.json();
 
-  // Sort by score descending, show non-clean first
-  rows.sort((a, b) => b.score - a.score);
-  const notable = rows.filter(r => r.verdict !== "CLEAN");
+    // Sort by score descending, show non-clean only
+    rows.sort((a, b) => b.score - a.score);
+    const notable = rows.filter(r => r.verdict !== "CLEAN");
 
-  if (!notable.length) {
-    bodyEl.innerHTML = '<div class="detail-empty">No suspicious or critical domains found yet.</div>';
-    return;
+    if (!notable.length) {
+      bodyEl.innerHTML = '<div class="detail-empty">No suspicious or critical domains found yet.</div>';
+      return;
+    }
+
+    bodyEl.innerHTML = `
+      <table class="detail-table">
+        <thead>
+          <tr>
+            <th>Domain</th>
+            <th>Score</th>
+            <th>Verdict</th>
+            <th>Registered</th>
+            <th>Registrar</th>
+            <th>Owner</th>
+            <th>Source</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${notable.map(r => {
+            const col = r.score >= 70 ? "#ef4444" : "#f59e0b";
+            const reg = r.registration_date ? r.registration_date.slice(0,10) : "—";
+            return `<tr>
+              <td><a href="https://${r.domain}" target="_blank" rel="noopener" style="color:var(--accent)">${r.domain}</a></td>
+              <td>
+                <div class="score-cell">
+                  <span style="min-width:2rem;font-weight:700">${r.score}</span>
+                  <div class="score-track"><div class="score-fill" style="width:${r.score}%;background:${col}"></div></div>
+                </div>
+              </td>
+              <td><span class="verdict ${r.verdict}">${r.verdict}</span></td>
+              <td style="white-space:nowrap">${reg}</td>
+              <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.registrar??''}">${r.registrar??'—'}</td>
+              <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.registrant_owner??''}">${r.registrant_owner??'—'}</td>
+              <td>${r.source}</td>
+            </tr>`;
+          }).join("")}
+        </tbody>
+      </table>`;
+
+  } catch (err) {
+    bodyEl.innerHTML = `
+      <div class="detail-empty" style="display:flex;align-items:center;gap:0.75rem">
+        <span style="color:var(--danger)">Failed to load: ${err.message}</span>
+        <button class="btn-refresh" onclick="loadBrandDetail('${domain}', ${id})">Retry</button>
+      </div>`;
   }
-
-  bodyEl.innerHTML = `
-    <table class="detail-table">
-      <thead>
-        <tr>
-          <th>Domain</th>
-          <th>Score</th>
-          <th>Verdict</th>
-          <th>Registered</th>
-          <th>Registrar</th>
-          <th>Owner</th>
-          <th>Source</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${notable.map(r => {
-          const col = r.score >= 70 ? "#ef4444" : "#f59e0b";
-          const reg = r.registration_date ? r.registration_date.slice(0,10) : "—";
-          return `<tr>
-            <td><a href="https://${r.domain}" target="_blank" rel="noopener" style="color:var(--accent)">${r.domain}</a></td>
-            <td>
-              <div class="score-cell">
-                <span style="min-width:2rem;font-weight:700">${r.score}</span>
-                <div class="score-track"><div class="score-fill" style="width:${r.score}%;background:${col}"></div></div>
-              </div>
-            </td>
-            <td><span class="verdict ${r.verdict}">${r.verdict}</span></td>
-            <td style="white-space:nowrap">${reg}</td>
-            <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.registrar??''}">${r.registrar??'—'}</td>
-            <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.registrant_owner??''}">${r.registrant_owner??'—'}</td>
-            <td>${r.source}</td>
-          </tr>`;
-        }).join("")}
-      </tbody>
-    </table>`;
 }
 
 async function deleteBrand(domain, rowId) {

@@ -168,6 +168,59 @@
 
     #loading { text-align: center; padding: 2rem; color: var(--muted); }
 
+    /* ── Active scans panel ── */
+    .active-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 2rem;
+      overflow: hidden;
+    }
+    .active-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.85rem 1.25rem;
+      cursor: pointer;
+      user-select: none;
+      border-bottom: 1px solid transparent;
+      transition: border-color 0.2s;
+    }
+    .active-panel-header.open { border-bottom-color: var(--border); }
+    .active-panel-header h2 { font-size: 0.9rem; font-weight: 600; display: flex; align-items: center; gap: 0.6rem; }
+    .active-panel-header .chevron { font-size: 0.75rem; color: var(--muted); transition: transform 0.2s; }
+    .active-panel-header.open .chevron { transform: rotate(90deg); }
+    .throughput-pills { display: flex; gap: 0.5rem; font-size: 0.75rem; }
+    .pill {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 2px 10px;
+      color: var(--muted);
+    }
+    .pill span { color: var(--text); font-weight: 600; }
+    .active-panel-body { display: none; padding: 0.75rem 1.25rem; }
+    .active-panel-body.open { display: block; }
+    .active-task-list { display: flex; flex-direction: column; gap: 0.5rem; }
+    .active-task-row {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.6rem 0.9rem;
+      font-size: 0.8rem;
+    }
+    .task-domain { font-weight: 600; color: var(--accent); min-width: 180px; }
+    .task-brand  { color: var(--muted); min-width: 120px; }
+    .task-source { background: #1e3a5f; color: #93c5fd; padding: 1px 7px; border-radius: 4px; font-size: 0.7rem; }
+    .task-elapsed { color: var(--muted); margin-left: auto; white-space: nowrap; }
+    .task-stop { background: none; border: 1px solid #7f1d1d; color: #fca5a5; border-radius: 4px; padding: 2px 8px; font-size: 0.7rem; cursor: pointer; }
+    .task-stop:hover { background: #7f1d1d; }
+    .scanning-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--warn); animation: pulse 1.2s infinite; flex-shrink: 0; }
+    #active-empty { color: var(--muted); font-size: 0.85rem; padding: 0.5rem 0; }
+
     /* ── Status bar ── */
     .status-bar {
       background: var(--surface);
@@ -221,6 +274,31 @@
   </div>
 
   <div class="container">
+
+    <!-- ── Active Scans ── -->
+    <div class="active-panel">
+      <div class="active-panel-header" id="active-header" onclick="toggleActive()">
+        <h2>
+          <div class="scanning-dot" id="scanning-dot" style="display:none"></div>
+          Active Scans
+          <span id="active-count-badge" style="color:var(--muted);font-weight:400"></span>
+        </h2>
+        <div style="display:flex;align-items:center;gap:1rem">
+          <div class="throughput-pills">
+            <div class="pill">1 min <span id="tp-1m">—</span></div>
+            <div class="pill">10 min <span id="tp-10m">—</span></div>
+            <div class="pill">1 h <span id="tp-1h">—</span></div>
+            <div class="pill">Rate <span id="tp-rate">—</span>/min</div>
+          </div>
+          <span class="chevron">▶</span>
+        </div>
+      </div>
+      <div class="active-panel-body" id="active-body">
+        <div class="active-task-list" id="active-task-list">
+          <div id="active-empty">No active scans.</div>
+        </div>
+      </div>
+    </div>
 
     <!-- ── Add Domain ── -->
     <div class="add-domain-panel">
@@ -485,6 +563,84 @@
         refreshStatus();
       }
     }
+
+    // ── Active scans panel ──────────────────────────────────────────────────
+    let activePanelOpen = false;
+
+    function toggleActive() {
+      activePanelOpen = !activePanelOpen;
+      document.getElementById("active-header").classList.toggle("open", activePanelOpen);
+      document.getElementById("active-body").classList.toggle("open", activePanelOpen);
+    }
+
+    async function refreshActiveTasks() {
+      try {
+        const [statusRes, tpRes] = await Promise.all([
+          fetch("/workers/status"),
+          fetch("/workers/throughput"),
+        ]);
+        const status = await statusRes.json();
+        const tp     = await tpRes.json();
+
+        // Throughput pills
+        document.getElementById("tp-1m").textContent   = tp.last_1m  ?? "—";
+        document.getElementById("tp-10m").textContent  = tp.last_10m ?? "—";
+        document.getElementById("tp-1h").textContent   = tp.last_1h  ?? "—";
+        document.getElementById("tp-rate").textContent = tp.rate_per_min ?? "—";
+
+        const tasks = status.active_tasks ?? [];
+        const count = tasks.length;
+
+        // Badge + scanning dot
+        document.getElementById("active-count-badge").textContent = count ? `(${count})` : "";
+        document.getElementById("scanning-dot").style.display = count ? "block" : "none";
+
+        // Auto-open panel when tasks appear
+        if (count > 0 && !activePanelOpen) toggleActive();
+
+        const list  = document.getElementById("active-task-list");
+        const empty = document.getElementById("active-empty");
+
+        if (count === 0) {
+          list.innerHTML = "";
+          empty.style.display = "block";
+          return;
+        }
+        empty.style.display = "none";
+
+        list.innerHTML = tasks.map(t => {
+          const elapsed     = t.elapsed_sec != null ? `${t.elapsed_sec}s` : "—";
+          const domain      = t.domain       ?? "—";
+          const brand       = t.brand_domain ?? "—";
+          const source      = t.source       ?? "—";
+          const taskId      = t.id;
+          const workerShort = (t.worker ?? "").split("@").pop() ?? "—";
+
+          return `<div class="active-task-row" id="task-${taskId}">
+            <div class="scanning-dot"></div>
+            <div class="task-domain" title="${domain}">${domain.length > 30 ? domain.slice(0,28)+"…" : domain}</div>
+            <div class="task-brand">vs ${brand}</div>
+            <span class="task-source">${source}</span>
+            <span style="color:var(--muted);font-size:0.75rem">${workerShort}</span>
+            <div class="task-elapsed">⏱ ${elapsed}</div>
+            <button class="task-stop" onclick="stopTask('${taskId}')">Stop</button>
+          </div>`;
+        }).join("");
+
+      } catch {
+        // silently ignore
+      }
+    }
+
+    async function stopTask(taskId) {
+      await fetch(`/workers/tasks/${taskId}`, { method: "DELETE" });
+      document.getElementById(`task-${taskId}`)?.remove();
+      toast(`Task ${taskId.slice(0,8)}… revoked.`, "ok");
+      refreshActiveTasks();
+    }
+
+    refreshActiveTasks();
+    setInterval(refreshActiveTasks, 3000);
 
     refreshStatus();
     setInterval(refreshStatus, 5000);

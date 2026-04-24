@@ -4,11 +4,13 @@ from __future__ import annotations
 import os
 from typing import Optional
 
+import aiohttp
 import tldextract
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from analyzers.domain import resolve_domain
 from analyzers.visual import (
     compute_phash,
     extract_palette,
@@ -24,6 +26,21 @@ from core.models import Brand, ScanResult
 router = APIRouter(prefix="/brands", tags=["brands"])
 
 
+async def _domain_has_web_content(url: str) -> bool:
+    """
+    Quick HTTP check — returns True if the server responds with any HTTP status.
+    A timeout or connection error means the site is not reachable.
+    """
+    try:
+        async with aiohttp.ClientSession(
+            timeout=aiohttp.ClientTimeout(total=8)
+        ) as session:
+            async with session.get(url, allow_redirects=True) as resp:
+                return resp.status < 600  # any real HTTP response counts
+    except Exception:
+        return False
+
+
 @router.post("/fingerprint", response_model=FingerprintResponse)
 async def fingerprint_brand(
     body: FingerprintRequest,
@@ -32,6 +49,22 @@ async def fingerprint_brand(
     url = body.brand_url
     extracted = tldextract.extract(url)
     domain = f"{extracted.domain}.{extracted.suffix}"
+
+    # ── Validation: DNS ──────────────────────────────────────────────────────
+    ip = await resolve_domain(domain)
+    if ip is None:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Domain '{domain}' does not resolve. Check that it is registered and spelled correctly.",
+        )
+
+    # ── Validation: live website ─────────────────────────────────────────────
+    reachable = await _domain_has_web_content(url)
+    if not reachable:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Domain '{domain}' resolves but no website was found. The site may be down or not serving HTTP.",
+        )
 
     # Screenshot
     screenshot_path = await take_screenshot(url, domain)

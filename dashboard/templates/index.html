@@ -425,7 +425,7 @@ async function startScan() {
   const keywords = rawKw ? rawKw.split(",").map(k => k.trim()).filter(Boolean) : [];
 
   setScanLoading(true);
-  scanFeedback('<span class="spinner"></span>&nbsp;Fingerprinting brand…', "info", 0);
+  scanFeedback('<span class="spinner"></span>&nbsp;Checking domain and fingerprinting brand…', "info", 0);
   try {
     const fp = await fetch("/brands/fingerprint", {
       method: "POST", headers: { "Content-Type": "application/json" },

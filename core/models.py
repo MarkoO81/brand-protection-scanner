@@ -57,6 +57,7 @@ class ScanResult(Base):
     screenshot_path: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
 
     # Content signals
+    is_parked: Mapped[bool] = mapped_column(default=False)
     has_login_form: Mapped[bool] = mapped_column(default=False)
     has_external_form_action: Mapped[bool] = mapped_column(default=False)
     has_urgency_language: Mapped[bool] = mapped_column(default=False)

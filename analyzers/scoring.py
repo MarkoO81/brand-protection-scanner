@@ -23,6 +23,7 @@ class Signals:
     color_similarity: float = 0.0          # 0–1  → max 12 pts
 
     # Content
+    is_parked: bool = False                 # → caps final score at 30
     has_login_form: bool = False            # → 18 pts
     has_external_form_action: bool = False  # → 14 pts
     has_urgency_language: bool = False      # → 10 pts
@@ -65,6 +66,16 @@ def compute_score(signals: Signals) -> tuple[float, str, dict]:
     add("bad_hosting_asn", 15.0 if signals.bad_hosting_asn else 0.0)
 
     total = min(100.0, sum(breakdown.values()))
+
+    # Parked/for-sale pages have no active content — cap at 30 and
+    # zero out visual/content signals since there's nothing real to match.
+    if signals.is_parked:
+        parked_only = {
+            k: v for k, v in breakdown.items()
+            if k in ("similarity", "fresh_registration", "very_fresh", "homoglyphs")
+        }
+        total = min(30.0, sum(parked_only.values()))
+        breakdown["parked_page_cap"] = 0.0  # marker in breakdown
 
     if total >= 70:
         verdict = "CRITICAL"

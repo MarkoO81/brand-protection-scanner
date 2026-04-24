@@ -774,7 +774,10 @@ async function loadBrandDetail(domain, id) {
             const col = r.score >= 70 ? "#ef4444" : "#f59e0b";
             const reg = r.registration_date ? r.registration_date.slice(0,10) : "—";
             return `<tr>
-              <td><a href="https://${r.domain}" target="_blank" rel="noopener" style="color:var(--accent)">${r.domain}</a></td>
+              <td>
+                <a href="https://${r.domain}" target="_blank" rel="noopener" style="color:var(--accent)">${r.domain}</a>
+                ${r.is_parked ? ' <span style="background:#1e3a5f;color:#93c5fd;font-size:0.65rem;padding:1px 6px;border-radius:4px;font-weight:700">PARKED</span>' : ''}
+              </td>
               <td>
                 <div class="score-cell">
                   <span style="min-width:2rem;font-weight:700">${r.score}</span>

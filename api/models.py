@@ -118,6 +118,7 @@ class ScanResultOut(BaseModel):
     logo_similarity: float
     favicon_match: bool
     color_similarity: float
+    is_parked: bool
     has_login_form: bool
     has_external_form_action: bool
     has_urgency_language: bool

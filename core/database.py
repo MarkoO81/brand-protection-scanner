@@ -18,6 +18,7 @@ _MIGRATIONS = [
     ("scan_results", "registration_date",  "VARCHAR(32)"),
     ("scan_results", "registrar",           "VARCHAR(255)"),
     ("scan_results", "registrant_owner",    "VARCHAR(255)"),
+    ("scan_results", "is_parked",           "BOOLEAN DEFAULT FALSE"),
 ]
 
 

@@ -185,6 +185,7 @@ async def _full_scan(
         logo_similarity=logo_sim,
         favicon_match=fav_match,
         color_similarity=color_sim,
+        is_parked=content_signals.get("is_parked", False),
         has_login_form=content_signals.get("has_login_form", False),
         has_external_form_action=content_signals.get("has_external_form_action", False),
         has_urgency_language=content_signals.get("has_urgency_language", False),

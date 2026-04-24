@@ -79,6 +79,66 @@ def detect_js_obfuscation(html: str) -> bool:
     return False
 
 
+# ---------------------------------------------------------------------------
+# Parking / for-sale page detection
+# ---------------------------------------------------------------------------
+
+PARKING_TEXT_PATTERNS = re.compile(
+    r"\b(this domain is for sale|buy this domain|domain for sale|"
+    r"make an offer|purchase this domain|own this domain|"
+    r"domain may be for sale|inquire about this domain|"
+    r"domain is available|listed for sale|acquire this domain|"
+    r"this web page is parked|parked free|powered by sedo|"
+    r"godaddy\.com|hugedomains|afternic|dan\.com|"
+    r"turncommerce|namecheap marketplace|undeveloped\.com)\b",
+    re.IGNORECASE,
+)
+
+PARKING_TITLE_PATTERNS = re.compile(
+    r"\b(domain for sale|buy this domain|parked domain|"
+    r"coming soon|under construction|sedo|hugedomains|"
+    r"this domain|domain name)\b",
+    re.IGNORECASE,
+)
+
+# Known parking/registrar page body fingerprints
+PARKING_META_NAMES = {"parking", "sedo", "dan.com", "afternic", "hugedomains", "turncommerce"}
+
+
+def detect_parked_page(soup: BeautifulSoup, text: str) -> bool:
+    """
+    Return True if the page is a domain parking / for-sale page
+    with no real content.
+    """
+    # Check visible text
+    if PARKING_TEXT_PATTERNS.search(text):
+        return True
+
+    # Check <title>
+    title_tag = soup.find("title")
+    if title_tag and PARKING_TITLE_PATTERNS.search(title_tag.get_text()):
+        return True
+
+    # Check meta generator / description
+    for meta in soup.find_all("meta"):
+        name    = (meta.get("name", "") or "").lower()
+        content = (meta.get("content", "") or "").lower()
+        if any(p in name or p in content for p in PARKING_META_NAMES):
+            return True
+
+    # Very thin page: fewer than 80 words almost always means parked/error
+    if len(text.split()) < 80:
+        # Only flag thin pages if they also lack any real interactive elements
+        if not soup.find(["form", "input", "button", "a"]):
+            return True
+
+    return False
+
+
+# ---------------------------------------------------------------------------
+# Public API
+# ---------------------------------------------------------------------------
+
 def analyze_content(html: str, domain: str) -> dict:
     """
     Full content analysis pass.
@@ -89,6 +149,7 @@ def analyze_content(html: str, domain: str) -> dict:
     text = soup.get_text(separator=" ", strip=True)
 
     return {
+        "is_parked": detect_parked_page(soup, text),
         "has_login_form": detect_login_form(soup),
         "has_external_form_action": detect_external_form_action(soup, domain),
         "has_urgency_language": detect_urgency_language(text),

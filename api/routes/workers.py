@@ -137,7 +137,7 @@ async def stop_all():
     revoked = []
     for tasks in list(active.values()) + list(reserved.values()):
         for task in tasks:
-            celery_app.control.revoke(task["id"], terminate=True, signal="SIGTERM")
+            celery_app.control.revoke(task["id"], terminate=True, signal="SIGKILL")
             revoked.append(task["id"])
 
     purged = celery_app.control.purge()
@@ -152,5 +152,5 @@ async def stop_all():
 @router.delete("/tasks/{task_id}")
 async def stop_task(task_id: str):
     """Revoke a single task by ID."""
-    celery_app.control.revoke(task_id, terminate=True, signal="SIGTERM")
+    celery_app.control.revoke(task_id, terminate=True, signal="SIGKILL")
     return {"task_id": task_id, "message": "Task revoked."}

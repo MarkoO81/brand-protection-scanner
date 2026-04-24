@@ -32,7 +32,7 @@ def _stop_celery_tasks() -> dict:
         for tasks in list(active.values()) + list(reserved.values()):
             for task in tasks:
                 try:
-                    celery_app.control.revoke(task["id"], terminate=True, signal="SIGTERM")
+                    celery_app.control.revoke(task["id"], terminate=True, signal="SIGKILL")
                     revoked += 1
                 except Exception:
                     pass

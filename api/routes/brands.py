@@ -135,7 +135,7 @@ def _cancel_brand_tasks(brand_domain: str) -> dict:
         for task in tasks:
             kwargs = task.get("kwargs", {})
             if kwargs.get("brand_domain") == brand_domain:
-                celery_app.control.revoke(task["id"], terminate=True, signal="SIGTERM")
+                celery_app.control.revoke(task["id"], terminate=True, signal="SIGKILL")
                 revoked += 1
                 # Collect the lock key for this (candidate, brand) pair
                 candidate = kwargs.get("domain")

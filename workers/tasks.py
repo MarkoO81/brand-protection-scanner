@@ -111,6 +111,18 @@ def _is_locked(domain: str, brand_domain: str) -> bool:
 # Internal helpers
 # ---------------------------------------------------------------------------
 
+class _Aborted(Exception):
+    """Raised inside _full_scan when a halt or cancellation is detected mid-run."""
+
+
+def _check_abort(brand_domain: str) -> None:
+    """Synchronous abort check — safe to call from async via run_in_executor."""
+    if is_global_halt():
+        raise _Aborted("global_halt")
+    if is_brand_cancelled(brand_domain):
+        raise _Aborted("brand_cancelled")
+
+
 def _run(coro):
     """Run an async coroutine from a synchronous Celery task."""
     return asyncio.get_event_loop().run_until_complete(coro)
@@ -136,8 +148,10 @@ async def _full_scan(
     """
     Core async scanning logic.
     Returns None if the domain does not resolve (NXDOMAIN).
+    Raises _Aborted if a halt or brand-cancellation is detected mid-run.
     """
     url = f"https://{domain}"
+    loop = asyncio.get_event_loop()
 
     # --- DNS resolution: gate before any expensive work ---
     ip = await resolve_domain(domain)
@@ -145,13 +159,18 @@ async def _full_scan(
         logger.debug(f"NXDOMAIN — skipping {domain}")
         return None
 
+    # Checkpoint 1: after DNS (cheapest gate passed)
+    await loop.run_in_executor(None, _check_abort, brand_domain)
+
     # --- Cheap domain signals ---
     sim = domain_similarity(domain, brand_domain)
-    loop = asyncio.get_event_loop()
     whois_data, homoglyphs = await asyncio.gather(
         loop.run_in_executor(None, enrich_whois, domain),
         loop.run_in_executor(None, has_homoglyphs, domain),
     )
+
+    # Checkpoint 2: after WHOIS (before the slowest I/O — screenshot + HTTP)
+    await loop.run_in_executor(None, _check_abort, brand_domain)
 
     # --- Expensive I/O in parallel ---
     ip_data, screenshot_path, html = await asyncio.gather(
@@ -292,6 +311,11 @@ def scan_domain(
 
         _run(_save_result(result))
         return result
+
+    except _Aborted as exc:
+        # Mid-run abort (halt or brand deleted) — do NOT retry
+        logger.info(f"Aborted mid-scan {domain}: {exc}")
+        return {"domain": domain, "skipped": True, "reason": str(exc)}
 
     except Exception as exc:
         logger.error(f"scan_domain failed for {domain}: {exc}")

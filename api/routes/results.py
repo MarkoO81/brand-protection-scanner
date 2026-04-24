@@ -54,3 +54,15 @@ async def get_result(result_id: int, db: AsyncSession = Depends(get_db)):
     if not result:
         raise HTTPException(status_code=404, detail="Result not found.")
     return ScanResultOut.model_validate(result)
+
+
+@router.delete("/results/{result_id}", tags=["results"])
+async def delete_result(result_id: int, db: AsyncSession = Depends(get_db)):
+    from fastapi import HTTPException
+
+    result = await db.get(ScanResult, result_id)
+    if not result:
+        raise HTTPException(status_code=404, detail="Result not found.")
+    await db.delete(result)
+    await db.commit()
+    return {"deleted_id": result_id}

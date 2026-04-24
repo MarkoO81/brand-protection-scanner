@@ -6,7 +6,7 @@ from typing import Optional
 
 import tldextract
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from analyzers.visual import (
@@ -19,7 +19,7 @@ from analyzers.visual import (
 from api.deps import get_db
 from api.models import FingerprintRequest, FingerprintResponse
 from core.config import settings
-from core.models import Brand
+from core.models import Brand, ScanResult
 
 router = APIRouter(prefix="/brands", tags=["brands"])
 
@@ -75,3 +75,49 @@ async def fingerprint_brand(
         color_palette=[list(c) for c in color_palette] if color_palette else None,
         screenshot_url=screenshot_url,
     )
+
+
+@router.get("", tags=["brands"])
+async def list_brands(db: AsyncSession = Depends(get_db)):
+    """List all registered brand domains."""
+    result = await db.execute(select(Brand).order_by(Brand.domain))
+    brands = result.scalars().all()
+    return [
+        {"id": b.id, "domain": b.domain, "keywords": b.keywords, "created_at": b.created_at}
+        for b in brands
+    ]
+
+
+@router.delete("/{domain}", tags=["brands"])
+async def delete_brand(
+    domain: str,
+    include_scan_results: bool = False,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Delete a brand fingerprint by domain name.
+    Pass ?include_scan_results=true to also wipe all scan results for this brand.
+    """
+    result = await db.execute(select(Brand).where(Brand.domain == domain))
+    brand = result.scalar_one_or_none()
+    if not brand:
+        raise HTTPException(status_code=404, detail=f"Brand '{domain}' not found.")
+
+    if include_scan_results:
+        await db.execute(delete(ScanResult).where(ScanResult.brand_domain == domain))
+
+    await db.delete(brand)
+    await db.commit()
+
+    return {
+        "deleted": domain,
+        "scan_results_deleted": include_scan_results,
+    }
+
+
+@router.delete("/{domain}/results", tags=["brands"])
+async def delete_brand_results(domain: str, db: AsyncSession = Depends(get_db)):
+    """Delete all scan results for a brand without removing the brand itself."""
+    res = await db.execute(delete(ScanResult).where(ScanResult.brand_domain == domain))
+    await db.commit()
+    return {"brand_domain": domain, "scan_results_deleted": res.rowcount}

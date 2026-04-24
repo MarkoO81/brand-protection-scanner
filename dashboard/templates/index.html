@@ -339,12 +339,16 @@
       <!-- Results -->
       <div>
         <div class="section-head" style="margin-bottom:.75rem">
-          <div class="section-title">Results</div>
+          <div class="section-title">
+            Results
+            <span id="results-count" style="font-size:.75rem;font-weight:400;color:var(--muted);margin-left:.5rem"></span>
+            <span id="results-syncing" style="font-size:.72rem;color:var(--muted);margin-left:.5rem;display:none">↻ refreshing…</span>
+          </div>
           <div class="filters">
             <select id="f-verdict"><option value="">All verdicts</option><option value="CRITICAL">Critical</option><option value="SUSPICIOUS">Suspicious</option><option value="CLEAN">Clean</option></select>
             <input id="f-min-score" type="number" placeholder="Min score" min="0" max="100" style="width:90px" />
             <input id="f-brand" type="text" placeholder="Brand domain" style="width:140px" />
-            <button class="btn-sm" onclick="loadResults()">Refresh</button>
+            <button class="btn-sm" onclick="loadResults(true)">Refresh</button>
           </div>
         </div>
         <div id="tbl-loading" style="color:var(--muted);font-size:.82rem;padding:.5rem 0">Loading…</div>
@@ -544,38 +548,67 @@ refreshStatus();
 setInterval(refreshStatus, 3000);
 
 // ── Results ───────────────────────────────────────────────────────────────────
-async function loadResults() {
-  document.getElementById("tbl-loading").style.display = "block";
-  document.getElementById("results-table").style.display = "none";
-  const params = new URLSearchParams({ limit: 200 });
+let _resultsInFlight = false;
+
+async function loadResults(force = false) {
+  // Prevent concurrent fetches from racing and flickering the table
+  if (_resultsInFlight && !force) return;
+  _resultsInFlight = true;
+
+  const tableEl   = document.getElementById("results-table");
+  const loadingEl = document.getElementById("tbl-loading");
+  const syncEl    = document.getElementById("results-syncing");
+  const countEl   = document.getElementById("results-count");
+  const tbody     = document.getElementById("results-body");
+
+  const firstLoad = tableEl.style.display === "none";
+  if (firstLoad) {
+    loadingEl.style.display = "block";
+  } else {
+    syncEl.style.display = "inline"; // subtle indicator, don't hide existing rows
+  }
+
+  const params = new URLSearchParams({ limit: 500 });
   const verdict  = document.getElementById("f-verdict").value;
   const minScore = document.getElementById("f-min-score").value;
   const brand    = document.getElementById("f-brand").value;
   if (verdict)  params.set("verdict", verdict);
   if (minScore) params.set("min_score", minScore);
   if (brand)    params.set("brand_domain", brand);
-  const rows = await fetch(`/results?${params}`).then(r => r.json()).catch(() => []);
-  const tbody = document.getElementById("results-body");
-  tbody.innerHTML = rows.map(r => {
-    const col = r.score>=70?"#ef4444":r.score>=40?"#f59e0b":"#22c55e";
-    const reg = r.registration_date ? r.registration_date.slice(0,10) : "—";
-    return `<tr>
-      <td>
-        <a href="https://${r.domain}" target="_blank" rel="noopener" style="color:var(--accent)">${r.domain}</a>
-        ${r.is_parked?'<span style="background:#1e3a5f;color:#93c5fd;font-size:.62rem;padding:1px 5px;border-radius:3px;font-weight:700;margin-left:4px">PARKED</span>':''}
-      </td>
-      <td>${r.brand_domain}</td>
-      <td><div class="score-cell"><span style="min-width:2.2rem;font-weight:700">${r.score}</span><div class="score-track"><div class="score-fill" style="width:${r.score}%;background:${col}"></div></div></div></td>
-      <td><span class="verdict ${r.verdict}">${r.verdict}</span></td>
-      <td style="white-space:nowrap">${reg}</td>
-      <td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.registrar??''}">${r.registrar??"—"}</td>
-      <td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.registrant_owner??''}">${r.registrant_owner??"—"}</td>
-      <td>${r.source}</td>
-    </tr>`;
-  }).join("");
-  document.getElementById("tbl-loading").style.display = "none";
-  document.getElementById("results-table").style.display = "table";
+
+  try {
+    const rows = await fetch(`/results?${params}`).then(r => r.json());
+
+    tbody.innerHTML = rows.map(r => {
+      const col = r.score>=70?"#ef4444":r.score>=40?"#f59e0b":"#22c55e";
+      const reg = r.registration_date ? r.registration_date.slice(0,10) : "—";
+      return `<tr>
+        <td>
+          <a href="https://${r.domain}" target="_blank" rel="noopener" style="color:var(--accent)">${r.domain}</a>
+          ${r.is_parked?'<span style="background:#1e3a5f;color:#93c5fd;font-size:.62rem;padding:1px 5px;border-radius:3px;font-weight:700;margin-left:4px">PARKED</span>':''}
+        </td>
+        <td>${r.brand_domain}</td>
+        <td><div class="score-cell"><span style="min-width:2.2rem;font-weight:700">${r.score}</span><div class="score-track"><div class="score-fill" style="width:${r.score}%;background:${col}"></div></div></div></td>
+        <td><span class="verdict ${r.verdict}">${r.verdict}</span></td>
+        <td style="white-space:nowrap">${reg}</td>
+        <td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.registrar??''}">${r.registrar??"—"}</td>
+        <td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.registrant_owner??''}">${r.registrant_owner??"—"}</td>
+        <td>${r.source}</td>
+      </tr>`;
+    }).join("");
+
+    countEl.textContent = rows.length ? `(${rows.length})` : "";
+    loadingEl.style.display = "none";
+    tableEl.style.display = "table";
+  } catch(e) {
+    // Don't wipe the existing table on a transient error
+    if (firstLoad) loadingEl.textContent = "Failed to load results.";
+  } finally {
+    syncEl.style.display = "none";
+    _resultsInFlight = false;
+  }
 }
+
 loadResults();
 setInterval(loadResults, 30000);
 

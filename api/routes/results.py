@@ -20,7 +20,7 @@ async def get_results(
     min_score: Optional[float] = Query(None, ge=0, le=100),
     brand_domain: Optional[str] = Query(None),
     source: Optional[str] = Query(None),
-    limit: int = Query(50, ge=1, le=500),
+    limit: int = Query(500, ge=1, le=1000),
     offset: int = Query(0, ge=0),
     db: AsyncSession = Depends(get_db),
 ):

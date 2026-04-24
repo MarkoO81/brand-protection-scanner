@@ -18,6 +18,12 @@ async def scan(body: ScanRequest, db: AsyncSession = Depends(get_db)):
     brand_domain = body.brand_config.domain
     keywords = body.brand_config.keywords
 
+    # Clear global halt flag so new scans can proceed after a reset
+    from core.redis_client import get_redis
+    _r = get_redis()
+    await _r.delete("global:halt")
+    await _r.aclose()
+
     # Reject if already in progress
     if _is_locked(body.domain, brand_domain):
         raise HTTPException(

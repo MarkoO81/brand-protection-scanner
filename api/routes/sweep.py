@@ -24,6 +24,12 @@ async def sweep(body: SweepRequest, db: AsyncSession = Depends(get_db)):
     brand_phash = brand.logo_phash if brand else None
     brand_palette = brand.color_palette if brand else None
 
+    # Clear global halt so sweeps work again after a reset
+    from core.redis_client import get_redis
+    _r = get_redis()
+    await _r.delete("global:halt")
+    await _r.aclose()
+
     candidates = generate_permutations(brand_domain)
 
     task = sweep_brand.apply_async(

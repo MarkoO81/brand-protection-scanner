@@ -63,6 +63,14 @@ def is_brand_cancelled(brand_domain: str) -> bool:
     return bool(result)
 
 
+def is_global_halt() -> bool:
+    """Returns True when a full reset has been triggered."""
+    r = sync_redis.from_url(settings.redis_url, decode_responses=True)
+    result = r.exists("global:halt")
+    r.close()
+    return bool(result)
+
+
 # ---------------------------------------------------------------------------
 # Deduplication lock helpers (synchronous Redis — used inside Celery tasks)
 # ---------------------------------------------------------------------------
@@ -249,6 +257,11 @@ def scan_domain(
     exits immediately without doing any work.
     """
     task_id = self.request.id
+
+    # --- Global halt (Reset All was triggered) ---
+    if is_global_halt():
+        logger.info(f"Global halt active — dropping scan of {domain}")
+        return {"domain": domain, "skipped": True, "reason": "global_halt"}
 
     # --- Brand cancellation check (brand was deleted while task was queued) ---
     if is_brand_cancelled(brand_domain):

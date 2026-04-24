@@ -50,6 +50,14 @@ async def fingerprint_brand(
     extracted = tldextract.extract(url)
     domain = f"{extracted.domain}.{extracted.suffix}"
 
+    # ── Validation: already registered ──────────────────────────────────────
+    existing_check = await db.execute(select(Brand).where(Brand.domain == domain))
+    if existing_check.scalar_one_or_none():
+        raise HTTPException(
+            status_code=409,
+            detail=f"Brand '{domain}' is already in your brand list.",
+        )
+
     # ── Validation: DNS ──────────────────────────────────────────────────────
     ip = await resolve_domain(domain)
     if ip is None:

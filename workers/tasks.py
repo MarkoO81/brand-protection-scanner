@@ -34,8 +34,33 @@ from workers.pipeline import app
 logger = get_task_logger(__name__)
 
 # How long (seconds) a scan lock is held.
-# Covers the worst-case full scan duration + retry delays.
 SCAN_LOCK_TTL = 600  # 10 minutes
+
+# How long the cancelled-brand blocklist entry lives in Redis.
+# Long enough to let the queue drain fully after deletion.
+CANCEL_TTL = 3600  # 1 hour
+
+
+# ---------------------------------------------------------------------------
+# Cancelled-brand blocklist
+# ---------------------------------------------------------------------------
+
+def _cancel_key(brand_domain: str) -> str:
+    return f"brand:cancelled:{brand_domain}"
+
+
+def mark_brand_cancelled(brand_domain: str) -> None:
+    """Called by the delete endpoint — blocks all future tasks for this brand."""
+    r = sync_redis.from_url(settings.redis_url, decode_responses=True)
+    r.set(_cancel_key(brand_domain), "1", ex=CANCEL_TTL)
+    r.close()
+
+
+def is_brand_cancelled(brand_domain: str) -> bool:
+    r = sync_redis.from_url(settings.redis_url, decode_responses=True)
+    result = r.exists(_cancel_key(brand_domain))
+    r.close()
+    return bool(result)
 
 
 # ---------------------------------------------------------------------------
@@ -224,6 +249,11 @@ def scan_domain(
     exits immediately without doing any work.
     """
     task_id = self.request.id
+
+    # --- Brand cancellation check (brand was deleted while task was queued) ---
+    if is_brand_cancelled(brand_domain):
+        logger.info(f"Brand {brand_domain} was deleted — dropping scan of {domain}")
+        return {"domain": domain, "skipped": True, "reason": "brand_cancelled"}
 
     # --- Deduplication check ---
     if not _acquire_lock(domain, brand_domain, task_id):

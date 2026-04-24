@@ -114,6 +114,8 @@ async def list_brands(db: AsyncSession = Depends(get_db)):
 
 
 def _cancel_brand_tasks(brand_domain: str) -> dict:
+    from workers.tasks import mark_brand_cancelled
+    mark_brand_cancelled(brand_domain)  # blocks queued tasks immediately
     """
     Revoke all active + reserved Celery tasks that belong to this brand,
     then delete their Redis scan locks so workers stop immediately and

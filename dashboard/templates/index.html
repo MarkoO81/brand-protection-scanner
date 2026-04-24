@@ -260,6 +260,22 @@
     .cnt.clean      { color: var(--ok); }
     .cnt.total      { color: var(--muted); }
     .cnt-label { font-size: 0.65rem; color: var(--muted); font-weight: 400; display: block; text-align: center; }
+    .brand-name-btn {
+      background: none;
+      border: none;
+      color: var(--accent);
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
+      text-align: left;
+      padding: 0;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      text-decoration-color: transparent;
+      transition: text-decoration-color 0.15s;
+    }
+    .brand-name-btn:hover { text-decoration-color: var(--accent); }
+
     .btn-delete-brand {
       background: none;
       border: 1px solid var(--border);
@@ -271,6 +287,38 @@
       white-space: nowrap;
     }
     .btn-delete-brand:hover { border-color: var(--danger); color: #fca5a5; }
+
+    /* ── Brand detail drawer ── */
+    .brand-detail {
+      display: none;
+      background: var(--bg);
+      border-top: 1px solid var(--border);
+      padding: 1rem 1.25rem 1.25rem;
+    }
+    .brand-detail.open { display: block; }
+    .brand-detail-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.75rem;
+    }
+    .brand-detail-header h3 { font-size: 0.8rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+    .btn-close-detail {
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 1rem;
+      line-height: 1;
+    }
+    .btn-close-detail:hover { color: var(--text); }
+    .detail-table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+    .detail-table th, .detail-table td { padding: 0.5rem 0.65rem; text-align: left; border-bottom: 1px solid var(--border); }
+    .detail-table th { color: var(--muted); font-weight: 500; }
+    .detail-table tr:last-child td { border-bottom: none; }
+    .detail-table tr:hover td { background: #1f2335; }
+    .detail-empty { color: var(--muted); font-size: 0.82rem; padding: 0.5rem 0; }
+    .detail-loading { color: var(--muted); font-size: 0.82rem; padding: 0.5rem 0; }
 
     .spinner { width:13px; height:13px; border:2px solid rgba(255,255,255,.25); border-top-color:#fff; border-radius:50%; animation:spin .7s linear infinite; }
     @keyframes spin { to { transform:rotate(360deg); } }
@@ -639,32 +687,100 @@ async function loadBrands() {
     return;
   }
 
+  // Preserve open drawers across refresh
+  const openDrawers = new Set(
+    [...body.querySelectorAll(".brand-detail.open")].map(el => el.dataset.domain)
+  );
+
   body.innerHTML = brands.map(b => {
     const kw = b.keywords?.length ? b.keywords.join(", ") : "—";
-    return `<div class="brand-row" id="brand-row-${b.id}">
-      <div>
-        <div class="brand-name">${b.domain}</div>
-        <div class="brand-kw">Keywords: ${kw}</div>
+    const drawerOpen = openDrawers.has(b.domain) ? "open" : "";
+    return `
+    <div id="brand-row-${b.id}">
+      <div class="brand-row">
+        <div>
+          <button class="brand-name-btn" onclick="toggleBrandDetail('${b.domain}', ${b.id})">${b.domain}</button>
+          <div class="brand-kw">Keywords: ${kw}</div>
+        </div>
+        <div class="cnt critical">${b.critical}<span class="cnt-label">Critical</span></div>
+        <div class="cnt suspicious">${b.suspicious}<span class="cnt-label">Suspicious</span></div>
+        <div class="cnt clean">${b.clean}<span class="cnt-label">Clean</span></div>
+        <div class="cnt total">${b.total_scans}<span class="cnt-label">Total</span></div>
+        <button class="btn-delete-brand" onclick="deleteBrand('${b.domain}', ${b.id})">Delete</button>
       </div>
-      <div class="cnt critical">
-        ${b.critical}
-        <span class="cnt-label">Critical</span>
+      <div class="brand-detail ${drawerOpen}" id="detail-${b.id}" data-domain="${b.domain}">
+        <div class="brand-detail-header">
+          <h3>Suspicious domains — ${b.domain}</h3>
+          <button class="btn-close-detail" onclick="toggleBrandDetail('${b.domain}', ${b.id})">✕</button>
+        </div>
+        <div id="detail-body-${b.id}"><div class="detail-loading">Loading…</div></div>
       </div>
-      <div class="cnt suspicious">
-        ${b.suspicious}
-        <span class="cnt-label">Suspicious</span>
-      </div>
-      <div class="cnt clean">
-        ${b.clean}
-        <span class="cnt-label">Clean</span>
-      </div>
-      <div class="cnt total">
-        ${b.total_scans}
-        <span class="cnt-label">Total</span>
-      </div>
-      <button class="btn-delete-brand" onclick="deleteBrand('${b.domain}', ${b.id})">Delete</button>
     </div>`;
   }).join("");
+
+  // Re-load open drawers after re-render
+  for (const domain of openDrawers) {
+    const brand = brands.find(b => b.domain === domain);
+    if (brand) loadBrandDetail(brand.domain, brand.id);
+  }
+}
+
+async function toggleBrandDetail(domain, id) {
+  const drawer = document.getElementById(`detail-${id}`);
+  const isOpen = drawer.classList.toggle("open");
+  if (isOpen) loadBrandDetail(domain, id);
+}
+
+async function loadBrandDetail(domain, id) {
+  const bodyEl = document.getElementById(`detail-body-${id}`);
+  bodyEl.innerHTML = '<div class="detail-loading">Loading…</div>';
+
+  const params = new URLSearchParams({ brand_domain: domain, limit: 100 });
+  const rows   = await fetch(`/results?${params}`).then(r => r.json());
+
+  // Sort by score descending, show non-clean first
+  rows.sort((a, b) => b.score - a.score);
+  const notable = rows.filter(r => r.verdict !== "CLEAN");
+
+  if (!notable.length) {
+    bodyEl.innerHTML = '<div class="detail-empty">No suspicious or critical domains found yet.</div>';
+    return;
+  }
+
+  bodyEl.innerHTML = `
+    <table class="detail-table">
+      <thead>
+        <tr>
+          <th>Domain</th>
+          <th>Score</th>
+          <th>Verdict</th>
+          <th>Registered</th>
+          <th>Registrar</th>
+          <th>Owner</th>
+          <th>Source</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${notable.map(r => {
+          const col = r.score >= 70 ? "#ef4444" : "#f59e0b";
+          const reg = r.registration_date ? r.registration_date.slice(0,10) : "—";
+          return `<tr>
+            <td><a href="https://${r.domain}" target="_blank" rel="noopener" style="color:var(--accent)">${r.domain}</a></td>
+            <td>
+              <div class="score-cell">
+                <span style="min-width:2rem;font-weight:700">${r.score}</span>
+                <div class="score-track"><div class="score-fill" style="width:${r.score}%;background:${col}"></div></div>
+              </div>
+            </td>
+            <td><span class="verdict ${r.verdict}">${r.verdict}</span></td>
+            <td style="white-space:nowrap">${reg}</td>
+            <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.registrar??''}">${r.registrar??'—'}</td>
+            <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.registrant_owner??''}">${r.registrant_owner??'—'}</td>
+            <td>${r.source}</td>
+          </tr>`;
+        }).join("")}
+      </tbody>
+    </table>`;
 }
 
 async function deleteBrand(domain, rowId) {
